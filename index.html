@@ -108,6 +108,7 @@ related database functions. The new functions apply to SciDB array and data
 frame-like objects. A still growing list of the functions includes:</p>
 
 <ul>
+<li>apply (the R-style apply, not the SciDB AFL apply--see <code>bind</code> for that)</li>
 <li>aggregate</li>
 <li>bind  (SciDB <code>apply</code> operator--generalizes R's <code>cbind</code>)</li>
 <li>index_lookup</li>
@@ -117,9 +118,7 @@ frame-like objects. A still growing list of the functions includes:</p>
 <li>sort</li>
 <li>unique</li>
 <li>sweep</li>
-<li>apply (the R-style apply, not the SciDB AFL apply--see <code>bind</code> for that)</li>
-<li>cumulate</li>
-<li>cast, slice, repart, redimension, build (wrappers to SciDB operators)</li>
+<li>build, cast, cumulate, slice, repart, redimension, unpack (wrappers to SciDB operators)</li>
 </ul><p>See for example <code>help("subset", package="scidb")</code> for help on the <code>subset</code>
 function, or any of the other functions.</p>
 
