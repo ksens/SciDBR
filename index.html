@@ -48,6 +48,7 @@ directly from GitHub using the devtools package as follows:</p>
 <pre><code>library('devtools')
 install_github("SciDBR","paradigm4",quick=TRUE)
 </code></pre>
+That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
 
 <p>The SciDB R package requires installation of a simple open-source HTTP network
 service called on the SciDB coordinator.
@@ -58,6 +59,19 @@ Please feel free to <a href="https://github.com/Paradigm4/SciDBR">fork</a> this 
 
 <h1>
 <a name="new-features" class="anchor" href="#new-features"><span class="octicon octicon-link"></span></a>New features</h1>
+
+<h2>Better handling of missing values</h2>
+<p>
+The array-like and dataframe-like classes now handle missing values in a
+uniform way. All SciDB missing codes are mapped to R NA values and R NA values
+are mapped to SciDB missing code zero.
+
+<h2>Windowed and moving-window aggregates</h2>
+<p>
+Multidimensional windowed and moving-window aggregates are now supported with
+simple syntax in the aggregate function. Windows can be defined along
+coordinate axes or number of (sparse) data values.
+
 
 <h2>
 <a name="scidb-labeled-coordinates" class="anchor" href="#scidb-labeled-coordinates"><span class="octicon octicon-link"></span></a>Labeled coordinates</h2>
