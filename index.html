@@ -49,6 +49,7 @@ directly from GitHub using the devtools package as follows:</p>
 library('devtools')
 install_github("SciDBR","paradigm4",quick=TRUE)
 </code></pre>
+That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
 <blockquote>
 Note! The SciDBR package depends on the RCurl R package, which in turn requires
 support for the curl library in your operating system. This might mean that you
@@ -58,7 +59,6 @@ On RHEL and CentOS, this package is usually called
 and on Ubuntu it's called
 <span style="font-family: courier;">libcurl4-gnutls-dev</span>.
 </blockquote>
-That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
 
 <p>The SciDB R package requires installation of a simple open-source HTTP network
 service called on the SciDB coordinator.
