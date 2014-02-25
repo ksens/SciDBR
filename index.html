@@ -45,9 +45,19 @@
 <p>The current development version of this R package can always be installed
 directly from GitHub using the devtools package as follows:</p>
 
-<pre><code>library('devtools')
+<pre><code>
+library('devtools')
 install_github("SciDBR","paradigm4",quick=TRUE)
 </code></pre>
+<blockquote>
+Note! The SciDBR package depends on the RCurl R package, which in turn requires
+support for the curl library in your operating system. This might mean that you
+need to install a libcurl development library RPM or deb package on your OS.
+On RHEL and CentOS, this package is usually called 
+<span style="font-family: courier;">libcurl-devel</span>
+and on Ubuntu it's called
+<span style="font-family: courier;">libcurl4-gnutls-dev</span>.
+</blockquote>
 That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
 
 <p>The SciDB R package requires installation of a simple open-source HTTP network
