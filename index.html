@@ -42,6 +42,9 @@
 <p>Check out, and feel free to contribute to, examples in the project wiki here:
 <a href="https://github.com/Paradigm4/SciDBR/wiki/_pages">https://github.com/Paradigm4/SciDBR/wiki/_pages</a>.
 
+<p>The package vignette is here:
+<a href="https://raw.githubusercontent.com/Paradigm4/SciDBR/master/vignettes/scidb.pdf">scidb.pdf</a>
+
 <p>The current development version of this R package can always be installed
 directly from GitHub using the devtools package as follows:</p>
 
@@ -71,6 +74,14 @@ Please feel free to <a href="https://github.com/Paradigm4/SciDBR">fork</a> this 
 
 <h1>
 <a name="new-features" class="anchor" href="#new-features"><span class="octicon octicon-link"></span></a>New features</h1>
+
+<h2>Query abort</h2>
+<p>
+Users can now abort queries with CTRL+C or the STOP button in RStudio (finally!).
+
+<h2>Basic array concatenation and rbind</h2>
+<p>
+Arrays and dataframe-like objects now support concatenation along their first dimension.
 
 <h2>Better handling of missing values</h2>
 <p>
@@ -240,27 +251,36 @@ Here is a list of the functions and method defined in the latest
 package version:
 </p>
 <pre>
-$                 %*%               Ops               [
-abs               acos              aggregate         apply
-as.scidb          asin              atan              attribute_rename
-between           bind              build             cast
-cbind             colnames          colnames<-        cos
-count             crossprod         cumulate          df2scidb
-diag              diff              dim               dimnames
-dimnames<-        glm.fit           head              image
-index_lookup      iquery            is.scidb          is.scidbdf
-lag               length            log               max
-merge             min               names             names<-
-ncol              nrow              print             project
-redimension       regrid            rename            repart
-reshape           rownames          rownames<-        scidb
-scidbconnect      scidbdf           scidbeval         scidblist
-scidbls           scidbremove       scidbrm           sd
-show              sin               slice             sort
-str               subset            sum               svd
-sweep             t                 tail              tan
-tcrossprod        unique            unpack            var
-xgrid
+<                 cumulate          min               scidblist
+<=                df2scidb          na.locf           scidbls
+==                diag              names             scidbremove
+>                 diff              names             scidbrm
+>=                dim               names<-           sd
+[                 dim               names<-           show
+[                 dimension_rename  ncol              sin
+$                 dimensions        ncol              slice
+*                 dimnames          nrow              solve
+abs               dimnames          nrow              sort
+acos              dimnames<-        Ops               sort
+aggregate         Filter            Ops               str
+apply             glm.fit           phyper            str
+asin              head              print             subarray
+as.scidb          hist              project           subset
+atan              image             qhyper            subset
+attribute_rename  index_lookup      rbind             substitute
+between           iquery            redimension       sum
+bind              is.scidb          regrid            svd
+build             is.scidbdf        rename            sweep
+c                 lag               repart            t
+cast              length            reshape           tail
+cbind             length            rownames          tan
+cbind             log               rownames          tcrossprod
+colnames          log               rownames<-        unique
+colnames          max               schema            unique
+colnames<-        mean              scidb             unpack
+cos               median            scidb_attributes  var
+count             merge             scidbconnect      xgrid
+crossprod         merge             scidbeval
 </pre>
 
 
