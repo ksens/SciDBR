@@ -1,0 +1,5474 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="stylesheets/R.css" media="screen" />
+</head>
+<body>
+
+<h1>R Documentation for the `scidb` Package</h1>
+<h2>Table of Contents</h2>
+<div id="nav">
+</div>
+<hr>
+
+<div id="content">
+<h1>Methods for Function 'aggregate' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for aggregate-methods"><tr><td>aggregate-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>aggregate</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Aggregate a SciDB array object grouped by a subset of its dimensions and/or attributes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+aggregate(x, by, FUN, eval, window, variable_window, unpack)
+## S4 method for signature 'scidbdf'
+aggregate(x, by, FUN, eval, window, variable_window, unpack)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>by</code></td>
+<td>
+<p>(Optional) Either a single character string or a list of array dimension and/or attribute names to group by; or a SciDB array reference object to group by. Not required for <code>windowed</code> and grand aggregates&ndash;see details.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>A character string representing a SciDB aggregation expression
+or a reduction function.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+<tr valign="top"><td><code>window</code></td>
+<td>
+<p>(Optional) If specified, perform a moving window aggregate along the specified coordinate windows&ndash;see details below.</p>
+</td></tr>
+<tr valign="top"><td><code>variable_window</code></td>
+<td>
+<p>(Optional) If specified, perform a moving window aggregate over successive data values along the coordinate dimension axis specified by <code>by</code>&ndash;see details below.</p>
+</td></tr>
+<tr valign="top"><td><code>unpack</code></td>
+<td>
+<p>(Optional) If TRUE, return an unpacked SciDB result as a
+scidbdf dataframe-like object. It's sometimes useful to
+set this to FALSE if the aggregated result needs to be
+joined with another array. Default=FALSE.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Group the <code>scidb</code>, or <code>scidbdf</code> array object <code>x</code> by dimensions
+and/or attributes in the array.  applying the valid SciDB aggregation function
+<code>FUN</code> expressed as a character string to the groups. Set eval to TRUE to
+execute the aggregation and return a scidb object; set eval to FALSE to return
+an unevaluated SciDB array promise, which is essentially a character string
+describing the query that can be composed with other SciDB package functions.
+</p>
+<p>If an R reduction function is speciied for <code>FUN</code>, it will be
+transliterated to a SciDB aggregate.
+</p>
+<p>The <code>by</code> argument must be a list of dimension names and/or attribute names
+in the array <code>x</code> to group by, or a SciDB array reference object.  If
+<code>by</code> is not specified and one of the <code>window</code> options is not
+specified, then a grand aggregate is performed over all values in the array.
+</p>
+<p>The argument <code>by</code> may be a list of dimension names and/or attributes of the
+array <code>x</code>. Attributes that are not of type int64 will be 'factorized' first
+and replaced by enumerated int64 values that indicate each unique level (this
+requires SciDB 13.6 or higher).
+</p>
+<p>When <code>by</code> is a SciDB array it must contain one or more common dimensions
+with <code>x</code>.  The two arrays will be joined (using SciDB
+<code>cross_join(x,by)</code> and the resulting array will be grouped by the
+attributes in the <code>by</code> array. This is similar to the usual R data.frame
+aggregate method.
+</p>
+<p>Perform moving window aggregates by specifying the optional <code>window</code> or
+<code>variable_window</code> arguments. Use <code>window</code> to compute the aggregate
+expression along a moving window specified along each coordinate axis as
+<code>window=c(dimension_1_low, dim_1_high, dim_2_low,_dim_2_high, ...</code>.
+Moving window aggregates along coordinates may be applied in multiple
+dimensions.
+</p>
+<p>Use <code>variable_window</code> to perform moving window aggregates over data
+values in a single dimension specified by the <code>by</code> argument. See below
+for examples. Moving window aggregates along data values are restricted
+to a single array dimension.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidbdf</code> reference object. </p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a copy of the iris data frame in a 1-d SciDB array named "iris."
+# Note that SciDB attribute names will be changed to conform to SciDB
+# naming convention.
+x &lt;- as.scidb(iris,name="iris")
+
+# Compute averages of each variable grouped by Species
+a &lt;- aggregate(x, by="Species", FUN=mean)
+
+# Aggregation by an auxillary vector (which in this example comes from
+# an R data frame)--also note any valid SciDB aggregation expression may
+# be used:
+y &lt;- as.scidb(data.frame(sample(1:4,150,replace=TRUE)))
+a &lt;- aggregate(x, by=y, FUN="avg(Petal_Width) as apw, min(Sepal_Length) as msl")
+
+# Use the window argument to perform moving window aggregates along coordinate
+# systems. You need to supply a window across all the array dimesions.
+set.seed(1)
+A &lt;- as.scidb(matrix(rnorm(20),nrow=5))
+# Compute a moving window aggregate only along the rows summing two rows at
+# a time (returning result to R). The notation (0,1,0,0) means apply the
+# aggregate over the current row (0) and (1) following row, and just over
+# the current column (that is, a window size of one).
+aggregate(A,FUN="sum(val)",window=c(0,1,0,0))[]
+# The above aggregate is equivalent to, for example:
+apply(a,2,function(x) x+c(x[-1],0))
+
+# Moving windows using the window= argument run along array coordinates.
+# Moving windows using the variable_window= argument run along data values,
+# skipping over empty array cells. The next example illustrates the
+# difference.
+
+# First, create an array with empty values:
+B &lt;- A&gt;0
+# Here is what B looks like:
+B[]
+# Now, run a moving window aggregate along the rows with window just like
+# the above example:
+aggregate(B,FUN="sum(val)",window=c(0,1,0,0))[]
+# And now, a moving window along only the data values down the rows, note
+# that we need to specify the dimension with by=:
+aggregate(B,by="i",FUN="sum(val)",variable_window=c(0,1))[]
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Test if two SciDB arrays are equal in content</h1>
+
+
+<table width="100%" summary="page for all.equal"><tr><td>all.equal</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Test if two SciDB arrays are equal in content
+</h2>
+
+<h3>Description</h3>
+
+<p>Test if two SciDB arrays are equal in content, ignoring
+SciDB chunk partitioning and overlap differences.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+all.equal(target, current, ...)
+## S3 method for class 'scidbdf'
+all.equal(target, current, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>target</code></td>
+<td>
+<p> a <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>current</code></td>
+<td>
+<p> a <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> optional arguments that might be used in a future version.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Return <code>TRUE</code> if the <code>target</code> SciDB array has the same dimensions,
+same attributes and types and same data at the same coordinates as the
+<code>current</code> array.  Return <code>FALSE</code> otherwise.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A. Poliakov &lt;apoliakov@paradigm4&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Let's build a constant-valued 10x10 array:
+a &lt;- build(pi, c(10,10), chunksize=c(5,7))
+
+# The array is equal to itself!
+all.equal(a,a)    # (returns TRUE)
+
+# Let's build an identically-shaped and valued array but with different
+# array chunk partitioning and overlap:
+b &lt;- build(pi, c(10,10), chunksize=c(9,10), overlap=c(1,1))
+
+# all.equal does not care about SciDB chunk sizes or overlap differences:
+all.equal(a,b)    # (returns TRUE)
+
+# But differences in value or dimension matter:
+all.equal(a, b*2)  # (returns FALSE)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>antijoin</h1>
+
+
+<table width="100%" summary="page for antijoin"><tr><td>antijoin</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+antijoin
+</h2>
+
+<h3>Description</h3>
+
+<p>Given two SciDB arrays of same dimensionality, return any coordinates that do
+NOT join.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+antijoin( array1, array2 )
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>array1</code></td>
+<td>
+<p> a <code>scidb</code> array or <code>scidbdf</code> data frame object.</p>
+</td></tr>
+<tr valign="top"><td><code>array2</code></td>
+<td>
+<p> a <code>scidb</code> array or <code>scidbdf</code> data frame object.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p><code>NULL</code> is returned when the two arrays join in all coordinates.
+Otherwise, a <code>scidb</code> array is returned such that for all coordinates, the
+single attribute shall equal to 1 if those coordinates exist only in
+<code>array1</code>, or 2 if those coordinates exist only in <code>array2</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A. Polyiakov &lt;apoliakov@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+set.seed(1)
+# Generate sparse SciDB arrays
+a &lt;- as.scidb(Matrix::sparseMatrix(
+               sample(10,100,replace=TRUE),sample(10,100,replace=TRUE),x=runif(100)))
+b &lt;- as.scidb(Matrix::sparseMatrix(
+               sample(10,100,replace=TRUE),sample(10,100,replace=TRUE),x=runif(100)))
+antijoin(a,b)[]
+
+# Output looks like:
+# [1,] 2 . . 1 2 1 . . . 2
+# [2,] 2 . 2 2 2 1 1 1 2 2
+# [3,] 2 . . 2 . 2 . . . 1
+# [4,] . 2 1 . . . . 1 . 2
+# [5,] . . . . . 1 . . . 2
+# [6,] 1 2 . . 2 2 . 1 . 2
+# [7,] . 1 . 1 . 1 . 1 . 1
+# [8,] 2 . 1 . 1 1 1 . . .
+# [9,] 2 . 1 . 2 . . 2 1 .
+#[10,] 2 . . . 2 . 2 2 . .
+
+## End(Not run)</pre>
+
+
+
+<h1>Upload an R matrix or data.frame to a SciDB array.</h1>
+
+
+<table width="100%" summary="page for as.scidb"><tr><td>as.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Upload an R matrix or data.frame to a SciDB array.
+</h2>
+
+<h3>Description</h3>
+
+<p>Upload an R matrix or data.frame into SciDB, returning a reference scidb object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+as.scidb(X, name = tmpnam(), chunkSize, overlap, start, gc=TRUE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p> A vector, matrix or sparse matrix of double-precision floating point values or a data.frame. </p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p> The name of the SciDB array to create.  </p>
+</td></tr>
+<tr valign="top"><td><code>chunkSize</code></td>
+<td>
+<p>A vector of optional SciDB array chunk sizes (a vector of length 1 for data frames and vectors, length 2 for matrices)</p>
+</td></tr>
+<tr valign="top"><td><code>overlap</code></td>
+<td>
+<p>(Not yet supported)</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>A vector of SciDB array starting dimension numeric index value or values.</p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>Set to TRUE to remove SciDB array when R object is garbage collected or R exists. FALSE means SciDB array persists.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> additional arguments to pass to <code>df2scidb</code> (see <code>df2scidb</code>).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Used with a matrix  or vector argument,
+the <code>as.scidb</code> function creates a single-attribute SciDB array named
+<code>name</code> and copies the data from <code>X</code> into it, returning a <code>scidb</code>
+object reference to the new array. The SciDB array will be 1-D if <code>X</code> is a
+vector, and 2-D if <code>X</code> is a matrix.
+</p>
+<p>If <code>X</code> is a data.frame, then <code>as.scidb</code> creates a one-dimensional
+multi-attribute SciDB array, with SciDB attributes representing each column
+of the data.frame. A utitlity function called <code>df2scidb</code> is used for
+data.frame uploads&ndash;the functions <code>as.scidb</code> and df2scidb are equivalent
+in this use case.
+</p>
+<p>This function supports double-precision, integer (32-bit), logical, and single-character
+array attribute types.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> reference object. </p>
+
+
+<h3>Note</h3>
+
+<p>The <code>as.scidb</code> function is not a very efficient way to upload lots of data
+to SciDB. Consider using the SciDB parallel bulk loader tools for that.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+<code>df2scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+X &lt;- matrix(runif(20),5)
+A &lt;- as.scidb(X)
+as.scidb(iris)
+scidblist()
+print(A)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Rename an attribute.</h1>
+
+
+<table width="100%" summary="page for attribute_rename"><tr><td>attribute_rename</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Rename an attribute.
+</h2>
+
+<h3>Description</h3>
+
+<p>Rename a SciDB array attribute.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+attribute_rename(x, old, `new`, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>old</code></td>
+<td>
+<p>A character string representation of the old attribute name.</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>A character string representation of the new attribute name.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- attribute_rename(x, "Species", "Group")
+
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>between</h1>
+
+
+<table width="100%" summary="page for between"><tr><td>between</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+between
+</h2>
+
+<h3>Description</h3>
+
+<p>Use <code>between</code> to select contiguous subarrays in indexing
+operations. The <code>between</code> function would not normally be used directly
+but rather inside bracket indexing operations as shown in the example.
+This function is designed to support efficient indexing of contiguous
+subarrays for arrays with non-integer dimensions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+between(a,b)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>a</code></td>
+<td>
+<p>A SciDB array range bound (numeric or string in the case of non-integer dimension)</p>
+</td></tr>
+<tr valign="top"><td><code>b</code></td>
+<td>
+<p>A SciDB array range bound (numeric or string in the case of non-integer dimension)</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A function that evaluates to a list of the specified bounds.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Between requires argument values that correspond to the array dimension
+types (no dimension casting is performed).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Upload data to create a 10x10 SciDB matrix
+A &lt;- as.scidb(matrix(rnorm(100),10))
+# The following are equivalent, but between avoids creating an
+# indexing vector:
+A[0:4,][]
+A[between(0,4),][]
+
+## End(Not run)</pre>
+
+
+
+<h1>bind</h1>
+
+
+<table width="100%" summary="page for bind"><tr><td>bind</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+bind
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>bind</code> function is a wrapper to the SciDB 'apply' operator.
+We chose the name 'bind' as this function most closely matches the
+concept of the R <code>cbind</code> function in data frame contexts.
+</p>
+<p>Similarly to <code>cbind</code>, the <code>bind</code> function adds a new
+variable (a.k.a. SciDB 'attribute') to a SciDB array.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+bind(X, name, FUN, eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>A character name for the new attribute</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>A SciDB function or expression that defines the values for the new attribute (character)</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidbdf</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- bind(x, "prod", "Petal_Length * Petal_Width")
+
+# The new scidbdf object y contains a new variable named 'prod':
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>build</h1>
+
+
+<table width="100%" summary="page for build"><tr><td>build</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+build
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>build</code> function is a wrapper to the SciDB 'build' operator.
+Operation is similar to the R <code>matrix</code> and <code>array</code> functions.
+It creates a new single-attribute SciDB array based on the specified parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+build(data, dim, names, type, start, name, chunksize, overlap, gc=TRUE, `eval`)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>A valid SciDB expression (expressed as a character string) or constant to fill the array.</p>
+</td></tr>
+<tr valign="top"><td><code>dim</code></td>
+<td>
+<p>A vector of dimension lengths.</p>
+</td></tr>
+<tr valign="top"><td><code>names</code></td>
+<td>
+<p>An optional vector of attribute and dimension names. Default attribute name is 'val' and the dimension names are labeled i,j,... by default.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>The SciDB type of the array attribute.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>An optional vector of starting dimension coordinate indices. Must match the length of the dim vector.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>Optional name of the SciDB array. An automatically generated name is used by default.</p>
+</td></tr>
+<tr valign="top"><td><code>chunksize</code></td>
+<td>
+<p>An optional vector of dimension chunk sizes. Must match the length of the dim vector.</p>
+</td></tr>
+<tr valign="top"><td><code>overlap</code></td>
+<td>
+<p>An optional vector of dimension overlap values. Must match the length of the dim vector.</p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>gc=TRUE (the default) removes the array when corresponding R objects are garbage collected. Set gc=FALSE to preserve arrays.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+y &lt;- build(pi, c(5,3))
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>Low-level SciDB cast operator</h1>
+
+
+<table width="100%" summary="page for cast"><tr><td>cast</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Low-level SciDB cast operator
+</h2>
+
+<h3>Description</h3>
+
+<p>Apply the low-level SciDB cast operator to a SciDB array.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+cast(x, schema, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>schema</code></td>
+<td>
+<p>A character string representation of a SciDB array schema.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The low-level SciDB cast operator can be used to change attribute and dimension names of an arary.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- cast(x,"&lt;a:double,b:double,c:double,e:double,f:string&gt;[row=1:150,150,0]")
+
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>Concatenate SciDB arrays</h1>
+
+
+<table width="100%" summary="page for c-methods"><tr><td>c-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Concatenate SciDB arrays</h2>
+
+<h3>Description</h3>
+
+<p>Concatenate SciDB arrays along one coordinate axis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidbdf'
+c(x,y,`eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>A <code>scidbdf</code> object with the same attribute pattern as <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Concatenate the SciDB arrays along their single dimension. The output array
+will include the entries of array <code>y</code> below the entries of <code>x</code>.
+The input arrays must have the same number of attributes and attribute types.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidbdf</code> reference object. </p>
+
+
+<h3>Note</h3>
+
+<p>This method will soon be extended to n-d arrays and to accept a list of more
+than two input arrays.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+data("iris")
+x &lt;- as.scidb(iris)
+c(x,x)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Masking comparison methods from package 'scidb'</h1>
+
+
+<table width="100%" summary="page for comparison-methods"><tr><td>comparison-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Masking comparison methods from package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>The binary operators described here perform comparison operations that
+return a sparse SciDB array of the same shape as the input array but
+only containing entries where the comparison evaluates to TRUE.
+</p>
+<p>Compare this with standard R comparison operators on SciDB arrays,
+that return an array populated with TRUE or FALSE values.
+</p>
+<p>Masked comparison arrays can be used to efficiently index other
+SciDB arrays.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+x %&lt;% y
+## S4 method for signature 'scidbdf'
+x %&lt;% y
+## S4 method for signature 'scidb'
+x %&gt;% y
+## S4 method for signature 'scidbdf'
+x %&gt;% y
+## S4 method for signature 'scidb'
+x %&lt;=% y
+## S4 method for signature 'scidbdf'
+x %&lt;=% y
+## S4 method for signature 'scidb'
+x %&gt;=% y
+## S4 method for signature 'scidbdf'
+x %&gt;=% y
+## S4 method for signature 'scidb'
+x %==% y
+## S4 method for signature 'scidbdf'
+x %==% y
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>A scalar value.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The comparisons outlined here are presently limited to scalars. A future
+version will include element-wise comparison between arrays. For now,
+use the <code>bind</code> and <code>merge</code> functions to manually perform
+element-wise comparisons.
+</p>
+<p>The standard R comparison operators by convention return an array of the
+same size as <code>x</code> with <code>TRUE</code> or <code>FALSE</code> values indicating
+the result of the comparison for each cell. That kind of output is
+especially useful in subsequent aggregations, for example.
+</p>
+<p>The alternate comparison methods outlined here return an array of the
+same shape as <code>x</code>, but masked to only contain values in cells
+where the
+condition evaluates to <code>TRUE</code>. Remaining cells are empty.
+This kind of comparison method is useful to quickly extract the values
+that meet the condition, and also to use the masked array as an
+index to subset other SciDB arrays.
+</p>
+<p>The examples below illustrate each kind of comparison operator.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> or <code>scidbdf</code> array of the same shape as <code>x</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+&gt; set.seed(1)
+&gt; x=as.scidb(rnorm(10))
+&gt; x[]
+# [1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+# [7]  0.4874291  0.7383247  0.5757814 -0.3053884
+&gt; (x &lt; 0)[]
+# [1]  TRUE FALSE  TRUE FALSE FALSE  TRUE FALSE FALSE FALSE  TRUE
+&gt; (x 
+#sparse vector (nnz/length = 4/10) of class "dsparseVector"
+# [1] -0.6264538          . -0.8356286          .          . -0.8204684
+# [7]          .          .          . -0.3053884
+
+# 
+&gt; Filter("val &lt; 0", x)[]
+#sparse vector (nnz/length = 4/10) of class "dsparseVector"
+# [1] -0.6264538          . -0.8356286          .          . -0.8204684
+# [7]          .          .          . -0.3053884
+
+# Sparse filtered output is useful to use to index SciDB arrays. The next
+# example selects just the entries of the array that meet the condition:
+&gt; x[x 
+# [1] -0.6264538 -0.8356286 -0.8204684 -0.3053884
+
+# The TRUE/FALSE output array is useful to aggregate by groups defined
+# by the condition. The next example computes the mean of the entries
+# that are less than zero, and the mean of the entries that are greater
+# than or equal to zero:
+&gt; aggregate(x, by=(x&lt;0), FUN=mean)[]
+#  condition_index    val_avg condition
+#0               0  0.6516612     false
+#1               1 -0.6469848      true
+
+## End(Not run)</pre>
+
+
+
+<h1>cumulate</h1>
+
+
+<table width="100%" summary="page for cumulate"><tr><td>cumulate</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+cumulate
+</h2>
+
+<h3>Description</h3>
+
+<p>Use <code>cumulate</code> function to compute running operations along data,
+for example cumulative sums.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+cumulate(x, expression, dimension, eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>expression</code></td>
+<td>
+<p>Any valid SciDB aggregate expression, expressed as a character string</p>
+</td></tr>
+<tr valign="top"><td><code>dimension</code></td>
+<td>
+<p>An optional array dimension name (character) to run along. The default is to use the first dimension.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>aggregate</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- cumulate(x, "sum(Petal_Width)")
+
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>Copy a data frame into a SciDB array.</h1>
+
+
+<table width="100%" summary="page for df2scidb"><tr><td>df2scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Copy a data frame into a SciDB array.</h2>
+
+<h3>Description</h3>
+
+<p>Copy a data frame into a new 1-D SciDB array.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+df2scidb(X, name = tmpnam(), dimlabel = "row", chunkSize,
+         rowOverlap = 0L, types = NULL, nullable, schema_only = FALSE, gc, start)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A data frame. </p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>The SciDB array name, defaults to an automatically-generated name.</p>
+</td></tr>
+<tr valign="top"><td><code>dimlabel</code></td>
+<td>
+<p>Name the SciDB dimension.</p>
+</td></tr>
+<tr valign="top"><td><code>chunkSize</code></td>
+<td>
+<p>The SciDB chunk size.</p>
+</td></tr>
+<tr valign="top"><td><code>rowOverlap</code></td>
+<td>
+<p>The SciDB chunk overlap.</p>
+</td></tr>
+<tr valign="top"><td><code>types</code></td>
+<td>
+<p>An optional vector explicitly specifying the SciDB attribute types. Length must match the number of columns of the data frame.</p>
+</td></tr>
+<tr valign="top"><td><code>nullable</code></td>
+<td>
+<p>An optional vector indicating the SciDB nullable property of each attribute. Length must match the number of columns of the data frame.</p>
+</td></tr>
+<tr valign="top"><td><code>schema_only</code></td>
+<td>
+<p>If TRUE, return a string that would represent the SciDB array schema without uploading data to SciDB.</p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>Optional logical value. If TRUE, then resulting SciDB array will be garbage-collected when the R variable referencing it is. The default value is FALSE.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>Optional integer starting index value. Defaults to 1.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>df2scidb</code> is a workhorse utility function that transfers an R data frame
+into a 1-D SciDB array via intermediate CSV formatting.
+The columns of the data frame correspond to attributes in the SciDB array. 
+The <code>iquery</code> function returns query results using a similar method as R
+data frames.
+</p>
+
+
+<h3>Value</h3>
+
+<p>NULL is invisibly returned. SciDB errors are propagated as R error conditions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+df2scidb(iris)
+scidblist()
+head(iquery("scan(iris)", return=TRUE))
+
+## End(Not run)
+</pre>
+
+
+
+<h1>diff</h1>
+
+
+<table width="100%" summary="page for diff.scidb"><tr><td>diff.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+diff
+</h2>
+
+<h3>Description</h3>
+
+<p>Apply a finite difference operator to a numeric series.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+diff(x,lag=1,...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> object with a numeric attribute.</p>
+</td></tr>
+<tr valign="top"><td><code>lag</code></td>
+<td>
+<p>An intereger lag value (see description).</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Optional arguments, not presently used.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>If 'x' is a vector of length 'n' and starting index 1, then the
+computed result is equal to the difference
+'x[(1+lag):n] - x[1:(n-lag)]'.
+</p>
+<p>If 'x' is a matrix then the difference operations are carried out
+on each column separately.
+</p>
+<p>SciDB missing (NULL) and NaN values propagate.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Rename a dimension.</h1>
+
+
+<table width="100%" summary="page for dimension_rename"><tr><td>dimension_rename</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Rename a dimension.
+</h2>
+
+<h3>Description</h3>
+
+<p>Rename a SciDB array dimension.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dimension_rename(x, old, `new`, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>old</code></td>
+<td>
+<p>A character string representation of the old dimension name.</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>A character string representation of the new dimension name.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- dimension_rename(x, "row", "i")
+
+str(y)
+
+## End(Not run)</pre>
+
+
+
+<h1>dimensions</h1>
+
+
+<table width="100%" summary="page for dimensions"><tr><td>dimensions</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+dimensions
+</h2>
+
+<h3>Description</h3>
+
+<p>Return a vector of SciDB array dimension names.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dimensions(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An object of class <code>scidb</code> or <code>scidbdf</code></p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A character vector of SciDB array dimension names.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Upload data to create a 10x10 SciDB matrix
+A &lt;- as.scidb(matrix(rnorm(100),10))
+dimensions(A)
+
+## End(Not run)</pre>
+
+
+
+<h1>dimnames</h1>
+
+
+<table width="100%" summary="page for dimnames.scidb"><tr><td>dimnames.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+dimnames
+</h2>
+
+<h3>Description</h3>
+
+<p>Return a list of dimension label arrays.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+dimnames(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> SciDB array reference object.  </p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The scidb package can label SciDB array coordinate systems with
+indices from other SciDB arays.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of dimension label arrays.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dimnames&lt;-, rownames, colnames</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+A &lt;- as.scidb(matrix(rnorm(20),nrow=5))
+colnames(A) &lt;- as.scidb(data.frame(letters[1:4]))
+dimnames(A)
+
+## End(Not run)</pre>
+
+
+
+<h1>dim</h1>
+
+
+<table width="100%" summary="page for dim.scidb"><tr><td>dim.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+dim
+</h2>
+
+<h3>Description</h3>
+
+<p>dim
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+dim(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> object.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Vector of matrix dimensions or NULL.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Fitting generalized linear models</h1>
+
+
+<table width="100%" summary="page for glm.fit"><tr><td>glm.fit</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Fitting generalized linear models
+</h2>
+
+<h3>Description</h3>
+
+<p><code>glm.fit</code> is used to fit generalized linear models specified by a model
+matrix and response vector. <code>glm_scidb</code> is a simplified interface for
+<code>scidbdf</code> objects similar (but much simpler than) <code>glm</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+glm.fit(x,y,weights=NULL,family=gaussian())
+glm_scidb(formula, data, family=gaussian(), weights=NULL)
+model_scidb(formula, data, factors=NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a model matrix of dimension 'n * p'.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>a response vector of length 'n'.</p>
+</td></tr>
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to
+that class): a symbolic description of the model to be
+fitted. See details for limitations.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>an object of class <code>scidbdf</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>an optional vector of 'prior weights' to be used in the
+fitting process.  Should be 'NULL' or a numeric or scidb vector.</p>
+</td></tr>
+<tr valign="top"><td><code>family</code></td>
+<td>
+<p>a description of the error distribution and link function to
+be used in the model, supplied as the result of a call to
+a family function.</p>
+</td></tr>
+<tr valign="top"><td><code>factors</code></td>
+<td>
+<p>a list of factor encodings to use in the model matrix. See details.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>glm_scidb</code> function works similarly to a limited version of
+the usual <code>glm</code> function, but with a <code>scidbdf</code> data.frame-like
+SciDB array instead of a standard data.frame.
+</p>
+<p>Formulas in the <code>glm_scidb</code> function may only refer to variables present
+in the <code>data</code> <code>scidbdf</code> object. And the indicated response must refer
+to a single-column response term in the data (the two-column response form is
+not accepted). Formulas may only list variables explicitly defined in the
+<code>data</code>. That means that you should bind interaction and transformed terms
+to your data before invoking the function.
+</p>
+<p>Categorical (factor) variables in the data must be represented as strings. They
+will be encoded as treatment-style contrast variables with the first listed
+value set to the baseline value. No other automated contrast encodings are
+available yet (you are free to build your own model matrix and use
+<code>glm.fit</code> for that). All other variables will be coerced to
+double-precision values.
+</p>
+<p>Use the <code>model_scidb</code> function to build a model matrix from a formula and
+a <code>scidbdf</code> data frame-like SciDB array.  The matrix is returned within an
+output list as a sparse SciDB matrix of class <code>scidb</code> with character
+string variables encoded as treatment contrasts as described above.
+If you already have a list of factor-level codes for categorical variables
+(for example from the output of <code>glm_scidb</code>, you can supply that in the
+factor argument. See help for <code>predict</code> for an example.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>glm.fit</code> and <code>glm_scidb</code> functions return
+a list of model output values described below. The <code>glm_scidb</code>
+method uses an S3 class to additionally overload nice printing
+and <code>summary</code> methods.
+</p>
+
+<ol>
+<li><p><EM>coefficients</EM>  model coefficient vector (SciDB array)
+</p>
+</li>
+<li><p><EM>stderr</EM>  vector of model coefficient standard errors (SciDB array)
+</p>
+</li>
+<li><p><EM>tval</EM>  vector of model coefficient t ratio values using estimated dispersion value (SciDB array)
+</p>
+</li>
+<li><p><EM>pval</EM>  vector of two-tailed p-values corresponding to the t ratio based on a Student t distribution. (It is possible that the dispersion is not known and there are no residual degrees of freedom from which to estimate it.  In that case the estimate is 'NaN'.)
+</p>
+</li>
+<li><p><EM>aic</EM>  a version of Akaike's <EM>An Information Criterion</EM> value.
+</p>
+</li>
+<li><p><EM>null.deviance</EM>  the deviance for the null model, comparable with <code>deviance</code>.
+</p>
+</li>
+<li><p><EM>res.deviance</EM>  up to a constant, minus twice the maximized log-likelihood.
+</p>
+</li>
+<li><p><EM>dispersion</EM>  For binomial and Poison families the dispersion is
+fixed at one and the number of parameters is the number of
+coefficients. For gaussian, Gamma and inverse gaussian families the
+dispersion is estimated from the residual deviance, and the number
+of parameters is the number of coefficients plus one.  For a
+gaussian family the MLE of the dispersion is used so this is a valid
+value of AIC, but for Gamma and inverse gaussian families it is not. Other
+families set this value to <code>NA</code>.
+</p>
+</li>
+<li><p><EM>df.null</EM>  the residual degrees of freedom for the null model.
+</p>
+</li>
+<li><p><EM>df.residual</EM>  the residual degrees of freedom.
+</p>
+</li>
+<li><p><EM>converged</EM>  <code>FALSE</code> if the model did not converge.
+</p>
+</li>
+<li><p><EM>totalObs</EM>  total number of observations in the model.
+</p>
+</li>
+<li><p><EM>nOK</EM>  total number of observations corresponding to nonzero weights.
+</p>
+</li>
+<li><p><EM>loglik</EM>  converged model log-likelihood value.
+</p>
+</li>
+<li><p><EM>rss</EM>  residual sum of squares.
+</p>
+</li>
+<li><p><EM>iter</EM>  number of model iterations.
+</p>
+</li>
+<li><p><EM>weights</EM>  vector of weights used in the model (SciDB array).
+</p>
+</li>
+<li><p><EM>family</EM>  model family function.
+</p>
+</li>
+<li><p><EM>y</EM>  response vector (SciDB array).
+</p>
+</li>
+<li><p><EM>x</EM>  model matrix (SciDB array).
+</p>
+</li>
+<li><p><EM>factors</EM>  a list of factor variable levels (SciDB arrays)
+or NULL if no factors are present in the data.
+</p>
+</li></ol>
+
+<p><code>model_scidb</code>  returns an output list with:
+</p>
+
+<ul>
+<li><p><EM>formula</EM>  the model forumual.
+</p>
+</li>
+<li><p><EM>model</EM>  the model matrix (SciDB array).
+</p>
+</li>
+<li><p><EM>response</EM>  the model response vector (SciDB array).
+</p>
+</li>
+<li><p><EM>names</EM>  an R character vector of variable names in the model matrix.
+</p>
+</li>
+<li><p><EM>intercept</EM>  a logical value; if TRUE the model includes an intercept term.
+</p>
+</li>
+<li><p><EM>factors</EM>  a list of factor variable levels (SciDB arrays)
+or NULL if no factors are present in the data.
+</p>
+</li></ul>
+
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+<code>predict.glm_scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Using glm.fit
+x &lt;- as.scidb(matrix(rnorm(5000*20),nrow=5000))
+y &lt;- as.scidb(rnorm(5000))
+M &lt;- glm.fit(x, y)
+coef(M)[]
+
+# Using glm_scidb (similar to glm)
+# From the 'glm' help:
+## Dobson (1990) Page 93: Randomized Controlled Trial :
+counts &lt;- c(18,17,15,20,10,20,25,13,12)
+outcome &lt;- gl(3,1,9)
+treatment &lt;- gl(3,3)
+d.AD &lt;- data.frame(treatment, outcome, counts)
+glm.D93 &lt;- glm(counts ~ outcome + treatment, family = poisson(),data=d.AD)
+summary(glm.D93)
+
+# Compare with:
+d.AD_sci = as.scidb(d.AD)
+glm.D93_sci = glm_scidb(counts ~ outcome + treatment, family = poisson(), data=d.AD_sci)
+summary(glm.D93_sci)
+
+## End(Not run)</pre>
+
+
+
+<h1>Miscellaneous methods from package 'scidb'</h1>
+
+
+<table width="100%" summary="page for grand-methods"><tr><td>grand-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Miscellaneous methods from package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>The methods described here compute a global aggregate on a
+SciDB array object and return a scalar value to R.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+mean(x)
+## S4 method for signature 'scidb'
+mean(x)
+## S4 method for signature 'scidb'
+median(x)
+## S4 method for signature 'scidbdf'
+median(x)
+## S4 method for signature 'scidbdf'
+sum(x)
+## S4 method for signature 'scidbdf'
+sum(x)
+## S4 method for signature 'scidb'
+min(x)
+## S4 method for signature 'scidbdf'
+min(x)
+## S4 method for signature 'scidb'
+max(x)
+## S4 method for signature 'scidbdf'
+max(x)
+## S4 method for signature 'scidb'
+count(x)
+## S4 method for signature 'scidbdf'
+count(x)
+## S4 method for signature 'scidb'
+sd(x)
+## S4 method for signature 'scidbdf'
+sd(x)
+## S4 method for signature 'scidb'
+var(x)
+## S4 method for signature 'scidbdf'
+var(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>sum</code> computes the global sum of the SciDB array elements (applies only to numeric types);
+<code>mean</code> computes the arithmetic average of the SciDB array elements;
+<code>median</code> computes the median of the SciDB array elements;
+<code>min</code> computes the minimum of the SciDB array elements;
+<code>max</code> computes the maximum of the SciDB array elements;
+<code>count</code> returns the number of non-empty cell values in the SciDB array;
+<code>sd</code> computes the standard deviation of the SciDB array elements (numeric only);
+<code>var</code> computes the variance of the SciDB array elements (numeric only).
+</p>
+
+
+<h3>Value</h3>
+
+<p>The methods documented here always return a scalar value.</p>
+
+
+<h3>Note</h3>
+
+<p>SciDB convention dictates that global aggregates only apply to the first
+listed attribute of a multi-attribute SciDB array (e.g., a scidbdf data
+frame-like object). Use <code>project(array, attribute)</code> to select a
+different attribute&ndash;see the examples.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+data("iris")
+x &lt;- as.scidb(iris)
+sum(x$Petal_Length)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Methods for Function 'hist' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for hist-methods"><tr><td>hist-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>hist</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>The generic function 'hist' computes a histogram of the given data
+values.  If 'plot = TRUE', the resulting object of class
+<code>histogram</code> is plotted by <code>plot.histogram</code>, before it is
+returned.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+hist(x, breaks=10, right=FALSE, materialize=TRUE, `eval`=FALSE, `plot`=TRUE, ...)
+## S4 method for signature 'scidbdf'
+hist(x, breaks=10, right=FALSE, materialize=TRUE, `eval`=FALSE, `plot`=TRUE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>breaks</code></td>
+<td>
+<p>a single number giving the number of cells for the histogram.</p>
+</td></tr>
+<tr valign="top"><td><code>right</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, the histogram cells are right-closed (left open) intervals.</p>
+</td></tr>
+<tr valign="top"><td><code>materialize</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, the histogram results are materialized into R vectors and returned as a standard object of class <code>histogram</code>. Otherwise the results are returned as SciDB objects.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>Optional, logical; If <code>TRUE</code>, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+<tr valign="top"><td><code>plot</code></td>
+<td>
+<p>Optional, logical; If <code>TRUE</code>, plot result before returning.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Optional; additional arguments for plotting.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This histogram function only supports equidistant breaks. If 'right = TRUE'
+(default), the histogram cells are intervals of the form '(a, b]', i.e., they
+include their right-hand endpoint, but not their left one.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>histogram</code> object, which is a list of components:
+</p>
+
+<ul>
+<li><p> breaks: the n+1 cell boundaries.
+</p>
+</li>
+<li><p> counts: n integers; for each cell, the number of <code>x[]</code> inside.
+</p>
+</li>
+<li><p> density: estimated density values.
+</p>
+</li>
+<li><p> mids: the n cell midpoints.
+</p>
+</li></ul>
+
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Hypergeometric functions in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for hypergeometric-methods"><tr><td>hypergeometric-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Hypergeometric functions in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Distribution and quantile functions 
+for the hypergeometric distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb_or_scidbdf'
+phyper(x, q, m, n, k, new="p",`eval`=FALSE)
+## S4 method for signature 'scidb_or_scidbdf'
+qhyper(x, p, m, n, k, new="q",`eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>q</code></td>
+<td>
+<p>A SciDB attribute name (character) or numeric constant representing the 
+quantile, for example the number of white balls drawn without replacement
+from an urn which contains both black and white balls.</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>A scidb attribute name or numeric constant representing
+the number of white balls in the urn.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>A scidb attribute name or numeric constant representing
+the number of black balls in the urn.</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>A scidb attribute name or numeric constant representing
+the number of balls drawn from the urn.</p>
+</td></tr>
+<tr valign="top"><td><code>p</code></td>
+<td>
+<p>A scidb attribute name or numeric constant representing
+probability between 0 and 1.</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>A character name for the result attribute.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The hypergeometric distribution is used for sampling <EM>without</EM>
+replacement.  The density of this distribution with parameters
+<code>m</code>, <code>n</code> and <code>k</code> is given by
+</p>
+<p align="center"><i>p(x) =      choose(m, x) choose(n, k-x) / choose(m+n, k)</i></p>
+
+<p>for <i>x = 0, &hellip;, k</i>.
+</p>
+<p>The quantile is defined as the smallest value <i>x</i> such that
+<i>F(x) &ge; p</i>, where <i>F</i> is the distribution function.
+</p>
+<p><code>phyper</code> gives the distribution
+function, <code>qhyper</code> gives the quantile function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code>, <code>scidbdf</code> reference object. </p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Write me
+
+## End(Not run)
+</pre>
+
+
+
+<h1>index_lookup</h1>
+
+
+<table width="100%" summary="page for index_lookup"><tr><td>index_lookup</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+index_lookup
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>index_lookup</code> function is a wrapper to the SciDB 'index_lookup' operator.
+It produces a new SciDB array that joins the unqiue indices defined in the array
+<code>I</code> with values looked up in array <code>X</code> for attribute <code>attr</code>. Use
+the <code>index_lookup</code> with the <code>unique</code> and <code>sort</code> functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+index_lookup(X, I, attr, new_attr, eval=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>I</code></td>
+<td>
+<p>A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>attr</code></td>
+<td>
+<p>A character string attribute name from the <code>X</code> array</p>
+</td></tr>
+<tr valign="top"><td><code>new_attr</code></td>
+<td>
+<p>An optional character name for the new attribute, defaults to <code>attr</code> + &quot;_index&quot;</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code>  or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+data("iris")
+x &lt;- as.scidb(iris)
+
+# Create a unique list of elements of the "Species" attribute.
+# Note that we choose to defer evaluation of this expression.
+y &lt;- unique(sort(project(x,"Species")), eval=FALSE)
+
+# Append a new attribute to the array x called "Species_index" that
+# enumerates the unique values of the "Species" attribute:
+z &lt;- index_lookup(x, y, "Species", eval=FALSE)
+
+print(head(z))
+
+## End(Not run)</pre>
+
+
+
+<h1>Simple SciDB query tool</h1>
+
+
+<table width="100%" summary="page for iquery"><tr><td>iquery</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Simple SciDB query tool</h2>
+
+<h3>Description</h3>
+
+<p>Issue SciDB queries and optionally return output in a data frame.</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+iquery(query, `return` = FALSE, afl = TRUE, iterative = FALSE, n = 10000, excludecol, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>query</code></td>
+<td>
+<p>A SciDB query string (character). Separate multiple queries with semicolons. </p>
+</td></tr>
+<tr valign="top"><td><code>return</code></td>
+<td>
+<p>Set to TRUE to return output. Otherwise don't return query output. Only available when <code>afl=TRUE</code></p>
+</td></tr>
+<tr valign="top"><td><code>afl</code></td>
+<td>
+<p>TRUE indicates query is in AFL form, FALSE indicates AQL. </p>
+</td></tr>
+<tr valign="top"><td><code>iterative</code></td>
+<td>
+<p>Set to TRUE to return a result iterator. FALSE returns entire result at once.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>Maximum number of rows to return when iterating through results. Set to <code>Inf</code> to return everything.</p>
+</td></tr>
+<tr valign="top"><td><code>excludecol</code></td>
+<td>
+<p>An optional numeric range of columns to exclude from iterative results (only applies when iterative=TRIE).</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Options passed on to <code>read.table</code> used to parse results.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>iquery</code> function is a simple analog of the command-line
+SciDB <code>iquery</code> program. </p>
+
+
+<h3>Value</h3>
+
+<p>If <code>return=TRUE</code>, return the query result in data frame form (similar to the
+command-line <code>-olcsv+</code> output option).
+</p>
+<p>If <code>return</code>=FALSE, return the query ID number.
+</p>
+<p>SciDB errors encountered during query processing are propagated to R and can
+be handled with normal R error handling mechanisms.
+</p>
+<p>Set <code>itreative=TRUE</code> to return a result iterator. Use the iterator <code>nextElem</code>
+function to iteratively return results, a maximum of <code>n</code> results at a time. See
+help in the <code>iterators</code> package for examples and options.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+iquery("list('instances')",return=TRUE)
+
+# A simple example that iterates through results using foreach
+# Build an array with 1 million numbers from zero to 1.
+iquery("store(build(&lt;x:double&gt;[i=1:1000000,100000,0],i/1000000),X)")
+# Apply a function and return result in an iterator:
+i &lt;- iquery("apply(X, y, sin(x))", return=TRUE, iterative=TRUE)
+
+# Sum up x and y (and dimension i too)
+library("foreach")
+foreach(j=i, .combine=function(...)colSums(rbind(...))) 
+
+# Compare with the much faster equivalent inside SciDB:
+iquery("aggregate(apply(X, y, sin(x)),sum(x),sum(y))", return=TRUE)
+
+
+## End(Not run)</pre>
+
+
+
+<h1>is.scidbdf</h1>
+
+
+<table width="100%" summary="page for is.scidbdf"><tr><td>is.scidbdf</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+is.scidbdf
+</h2>
+
+<h3>Description</h3>
+
+<p>Is this a SciDB array data.frame-like object?
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+is.scidbdf(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>Something.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Returns TRUE if <code>x</code> is a SciDB object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>is.scidb</h1>
+
+
+<table width="100%" summary="page for is.scidb"><tr><td>is.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+is.scidb
+</h2>
+
+<h3>Description</h3>
+
+<p>Is this a SciDB array object?
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+is.scidb(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>Something.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Returns TRUE if <code>x</code> is a SciDB object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>lag</h1>
+
+
+<table width="100%" summary="page for lag"><tr><td>lag</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+lag
+</h2>
+
+<h3>Description</h3>
+
+<p>Lag or lead a time series
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+lag(x, k=1, dim=1, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A scidb array object.</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>Coordinate system units to lag by.</p>
+</td></tr>
+<tr valign="top"><td><code>dim</code></td>
+<td>
+<p>SciDB array dimension to lag along.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A scidb array object with identical schema as <code>x</code>, but whose values are shifted along the coordinate axis <code>dim</code> by the lag value <code>k</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- build("i",dim=10,names=c("x","i"),start=1,type="double")
+y &lt;- lag(x)
+merge(x,y,by="i",all=TRUE)
+
+## End(Not run)</pre>
+
+
+
+<h1>length</h1>
+
+
+<table width="100%" summary="page for length.scidb"><tr><td>length.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+length
+</h2>
+
+<h3>Description</h3>
+
+<p>Return the total number of array elements of a SciDB array object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+length(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>A <code>scidb</code> object.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Numeric length of the object in elements.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Methods for Function 'merge' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for merge-methods"><tr><td>merge-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>merge</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>SciDB <code>merge</code>, <code>cross_join</code>, and <code>join</code> operations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+merge(x,y, by=intersect(dimensions(x),dimensions(y)), by.x, by.y, merge, eval)
+## S4 method for signature 'scidbdf'
+merge(x,y, by=intersect(dimensions(x),dimensions(y)), by.x, by.y, merge, eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code></p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code></p>
+</td></tr>
+<tr valign="top"><td><code>by</code></td>
+<td>
+<p>(Optional) Vector of common dimension or attribute names
+to join on. See details below.</p>
+</td></tr>
+<tr valign="top"><td><code>by.x</code></td>
+<td>
+<p>(Optional) Vector of dimension or attribute names of array
+<code>x</code> to join on. See deails.</p>
+</td></tr>
+<tr valign="top"><td><code>by.y</code></td>
+<td>
+<p>(Optional) Vector of dimension or attribute names of array
+<code>y</code> to join on. See deails.</p>
+</td></tr>
+<tr valign="top"><td><code>merge</code></td>
+<td>
+<p>(Optional) If true, perform a SciDB merge operation instead
+of join.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array.
+Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Only one of either <code>by</code> or both <code>by.x</code> and <code>by.y</code> may be
+specified.  If none of the <code>by.x</code>,<code>by.y</code> arguments are specified, and
+<code>by=NULL</code> the result is the Cartesian product of <code>x</code> and <code>y</code>.
+The default value of <code>by</code> performs a <code>cross_join</code> or <code>join</code>
+along common array dimensions.
+</p>
+<p>If only <code>by</code> is specified, the dimension names or attribute name in
+<code>by</code> are assumed to be common across <code>x</code> and <code>y</code>.  Otherwise
+dimension names or attribute names are matched across the names listed in
+<code>by.x</code> and <code>by.y</code>, respectively.
+</p>
+<p>If dimension names are specified and <code>by</code> contains all the dimensions
+in each array, then the SciDB <code>join</code> operator is used, otherwise SciDB's
+<code>cross_join</code> operator is used. In each either case, the output is a cross
+product set of the two arrays along the specified dimensions.
+</p>
+<p>If <code>by</code> or each of <code>by.x</code> and <code>by.y</code> list a single dimension
+name, the indicated attributes will be lexicographically ordered as categorical
+variables and SciDB will redimension each array along new coordinate systems
+defined by the attributes, and then those redimensioned arrays will be joined.
+This method presently limits joins along attributes to a single attribute from
+each array. The output array will contain additional columns showing the
+attribute factor levels used to join the arrays.
+</p>
+<p>This method is presently limited to SQL-like 'natural joins', a special
+case of inner joins corresponding to the <code>all=FALSE</code> case in
+the standard R <code>merge</code> function. A future version of this package
+will include additional join cases.
+</p>
+<p>Specify <code>merge=TRUE</code> to perform a SciDB merge operation instead
+of a SciDB join.
+</p>
+<p>The various SciDB <code>join</code> operators generally require that the arrays have
+identical partitioning (coordinate system bounds, chunk size, etc.) in the
+common dimensions.  The <code>merge</code> method attempts to rectify SciDB
+arrays along the specified dimensions as required before joining.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> or <code>scidbdf</code> reference object. </p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a copy of the iris data frame in a 1-d SciDB array named "iris."
+# Note that SciDB attribute names will be changed to conform to SciDB
+# naming convention.
+x &lt;- as.scidb(iris,name="iris")
+
+a &lt;- x$Species
+b &lt;- x$Petal_Length
+
+c &lt;- merge(a, b, by="row")
+merge(b, b, by="row", merge=TRUE)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Methods for Function 'na.locf' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for na.locf-methods"><tr><td>na.locf-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>na.locf</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Generic function for replacing each missing or empty value with the most recent
+non-missing value prior to it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+na.locf(object, along=dimensions(object)[1],`eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>along</code></td>
+<td>
+<p>A single SciDB array dimension name to replace missing values along.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Unlike the usual <code>na.locf</code> function from the <code>zoo</code> package, the SciDB
+<code>na.locf</code> function fills in both missing (SciDB <code>null</code> values) and
+empty (SciDB sparse) values with the last non-missing and non-sparse value
+along the indicated dimension.
+</p>
+<p>Time series represented in SciDB are often sparse arrays. The <code>na.locf</code>
+function defines a conveniet way to  fill in all missing values along the time
+coordinate axis down to the time resolution.
+</p>
+<p>Caution! The output array is a mostly dense, filled-in version of the input
+array. If the time resolution is very fine and the input array very sparse,
+then the output array can be huge. Consider using <code>regrid</code> first on
+very fine time scales to reduce their resolution.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> reference object. </p>
+
+
+<h3>Note</h3>
+
+<p>The default <code>na.locf</code> method in the <code>zoo</code> package unforunately
+overrides this function (it uses <code>ANY</code> in its method signature). If
+you need to use SciDB arrays and the <code>zoo</code> package, prefix SciDB's
+version with <code>scidb::na.locf(...)</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Dimension names</h1>
+
+
+<table width="100%" summary="page for names.scidb"><tr><td>names.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Dimension names
+</h2>
+
+<h3>Description</h3>
+
+<p>Return 2nd dimension names of a SciDB array with two or more dimensions,
+or just the single dimension names of a 1-d SciDB array reference object.
+Warning! Huge SciDB arrays can retun too much. See 
+<code>scidb</code> for an example alternative approach.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+names(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> A SciDB array reference object.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Returns a vector of dimension names.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Number of rows or columns of a SciDB matrix.</h1>
+
+
+<table width="100%" summary="page for nrow.scidb"><tr><td>nrow.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Number of rows or columns of a SciDB matrix.
+</h2>
+
+<h3>Description</h3>
+
+<p>Return the number of rows of a SciDB matrix (2-D array).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+nrow(x)
+## S3 method for class 'scidb'
+ncol(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>A <code>scidb</code> object.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>The number of rows of the matrix.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Binary scidb object operations.</h1>
+
+
+<table width="100%" summary="page for Ops.scidb"><tr><td>Ops.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Binary scidb object operations.
+</h2>
+
+<h3>Description</h3>
+
+<p>Binary scidb object operations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+Ops(e1, e2)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>e1</code></td>
+<td>
+
+<p>A scalar, vector, or matrix value, or SciDB array reference.
+</p>
+</td></tr>
+<tr valign="top"><td><code>e2</code></td>
+<td>
+
+<p>A scalar, vector, or matrix value, or SciDB array reference.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A scidb or scidbdf object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>persist</h1>
+
+
+<table width="100%" summary="page for persist"><tr><td>persist</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+persist
+</h2>
+
+<h3>Description</h3>
+
+<p>Mark a <code>scidb</code> or <code>scidbdf</code> object and any SciDB arrays in its
+dependency graph persistent.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+persist(x, remove = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>remove</code></td>
+<td>
+<p> A logical value. See details.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> Optional arguments not used by the default method, but reserved for future use.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Most <code>scidb</code> objects are ephemeral unless the <code>gc=FALSE</code> option is
+explicitly selected. Use the <code>persist</code> function with <code>remove=FALSE</code>
+to mark an array and all of its dependencies persistent. This is useful when
+you want to save a <code>scidb</code> object to an R data file and make sure its data
+is there when re-loaded.
+</p>
+<p>Specify <code>remove=TRUE</code> to 'unpersist' an object and all of its dependencies.
+</p>
+
+
+<h3>Value</h3>
+
+<p>NULL is invisibly returned. Use this function for its side effects.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- unique(x$Species)
+persist(y)
+save(y, file="y.rdata")
+
+# Now, *both* x and y can be removed without deleting the backing SciDB
+# array. Without persist or setting gc=FALSE on x, the array would have
+# been removed.
+rm(x,y)
+gc()
+
+# Since the array is still there, we can get it back.
+load("y.rdata")
+y[]
+
+## End(Not run)</pre>
+
+
+
+<h1>Prediction for SciDB GLM fits</h1>
+
+
+<table width="100%" summary="page for predict.glm_scidb"><tr><td>predict.glm_scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Prediction for SciDB GLM fits
+</h2>
+
+<h3>Description</h3>
+
+<p>Obtains predictions and optionally estimates standard errors of
+those predictions from a fitted generalized linear model object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'glm_scidb'
+predict(object, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p> a <code>glm_scidb</code> model object.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> optional arguments <code>newdata</code>, <code>type</code>, and <code>se.fit</code> (see details).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Optional arguments:
+</p>
+
+<ul>
+<li><p><code>newdata</code> a <code>scidbdf</code> SciDB data frame in which to look
+for variables with which to predict.  If omitted, the fitted
+linear predictors are used.
+</p>
+</li>
+<li><p><code>type</code> the type of prediction required.  The default is on the scale
+of the linear predictors; the alternative &quot;response&quot; is on
+the scale of the response variable.  Thus for a default
+binomial model the default predictions are of log-odds
+(probabilities on logit scale) and <code>type = "response"</code> gives
+the predicted probabilities.
+</p>
+</li>
+<li><p><code>se.fit</code> logical switch indicating if standard errors are required.
+</p>
+</li></ul>
+
+
+
+<h3>Value</h3>
+
+<p>If <code>se.fit = FALSE</code>, a vector of predictions.
+</p>
+<p>If <code>se.fit = TRUE</code>, a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p> Predictions, as for <code>se.fit = FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p> Estimated standard errors.</p>
+</td></tr>
+<tr valign="top"><td><code>residual.scale</code></td>
+<td>
+<p> A scalar giving the square root of the dispersion used
+in computing the standard errors.</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;, adapted from the R <code>predict.glm</code> documentation.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+<code>glm_scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## example adpted from Venables and Ripley (2002, pp. 190-2.):
+
+# In R:
+ldose   &lt;- rep(0:5, 2)
+numdead &lt;- c(1, 4, 9, 13, 18, 20, 0, 2, 6, 10, 12, 16)
+sex     &lt;- factor(rep(c("M", "F"), c(6, 6)))
+data    &lt;- data.frame(sex, ldose)
+data    &lt;- Reduce(rbind, 
+             lapply(1:length(numdead),
+               function(j) rbind(cbind(alive=1,data[j,])[rep(1,numdead[j]),],
+                                 cbind(alive=0,data[j,])[rep(1,20-numdead[j]),])))
+rownames(data) &lt;- NULL
+
+r_model &lt;- glm( alive ~ sex + ldose - 1, family=binomial(), data=data)
+
+# Now in SciDB:
+data_scidb &lt;- as.scidb(data)
+str(data_scidb)
+scidb_model &lt;- glm_scidb( alive ~ sex + ldose - 1, family=binomial(), data=data_scidb)
+
+# New data for prediction:
+ld &lt;- seq(0,5,0.1)
+newdata &lt;- as.scidb(data.frame(ldose=ld, sex=rep("M",length(ld))))
+head(newdata)
+
+pred_scidb = predict(scidb_model, newdata=newdata, type="response")
+head(pred_scidb)
+
+require("graphics")
+plot(c(1,32), c(0,1), type = "n", xlab = "dose",
+          ylab = "prob", log = "x")
+text(2^ldose, numdead/20, as.character(sex))
+lines(2^ld, pred_scidb[],lwd=2,col=4)
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Print a summary of a SciDB array object.</h1>
+
+
+<table width="100%" summary="page for print.scidb"><tr><td>print.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Print a summary of a SciDB array object.
+</h2>
+
+<h3>Description</h3>
+
+<p>Print a summary of a SciDB array object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+print(x, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> A scidb array object.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Printed summary output.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradim4.com&gt;
+</p>
+
+
+
+<h1>project</h1>
+
+
+<table width="100%" summary="page for project"><tr><td>project</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+project
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>project</code> function is a wrapper to the SciDB 'project' operator.
+It creates a new array that is a subset of the input array limited
+to a set of specified attributes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+project(X, attributes, eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A scidb or scidbdf object</p>
+</td></tr>
+<tr valign="top"><td><code>attributes</code></td>
+<td>
+<p>A character vector of attributes to project on to</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(iris)
+y &lt;- project(x, c("Sepal_Length","Petal_Length","Species"))
+
+print(head(y))
+
+## End(Not run)</pre>
+
+
+
+<h1>redimension</h1>
+
+
+<table width="100%" summary="page for redimension"><tr><td>redimension</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+redimension
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>redimension</code> function is a wrapper to the SciDB 'redimension' operator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+redimension(x, schema, dim, FUN, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A SciDB array object of class scidb or scidbdf.</p>
+</td></tr>
+<tr valign="top"><td><code>schema</code></td>
+<td>
+<p>An optional SciDB array object of class scidb, scidbdf,
+or a character string representation of the output array schema.</p>
+</td></tr>
+<tr valign="top"><td><code>dim</code></td>
+<td>
+<p>An optional character vector or list of new dimension names
+from the union of dimension and attribute names of x. Exactly
+one of the <code>s</code> and <code>dim</code> arguments must be specified.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>An optional reduction function applied when <code>redimension</code>
+collapses multiple values.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array.
+Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>Redimension</code> is a core SciDB operation. It can change the dimensionality,
+shape, and partitioning of arrays, and transform array attributes into array
+dimensions and vice versa. <code>Redimension</code> can also apply reduction functions
+to values when dimensions are removed, similarly to grouped aggregates.
+</p>
+<p>The R package <code>redimension</code> function presents several forms. The most
+direct form takes a SciDB array reference <code>x</code> and an desired output schema
+<code>s</code> and directly applies the SciDB <code>redimension</code> operator.
+</p>
+<p>Alternatively, users may specify a character vector or list of <code>dim</code>
+values that represent new array coordinate axes. These values should be a
+subset of the union of attributes and dimension names in the input array
+<code>x</code>. Note that they must also be valid <code>int64</code> types.
+</p>
+<p>When <code>redimension</code> reduces the dimensionality of an array, it's likely
+that multiple values may fall into the same output array cell. When this
+occurs, SciDB's default behavior randomly selects one of the possible values
+for output. Alternatively, users may specify a reduction function in the
+<code>FUN</code> argument or explicitly specify reductions using SciDB syntax in
+the schema argument. Note that the indicated reduction function will be
+applied to all the attributes. If you need more control over the reduction,
+explicitly specify the output schema instead.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Results
+can be composed to form complex query expressions that can be evaluated in one
+transaction.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Upload iris to SciDB:
+x &lt;- as.scidb(iris)
+
+# bind an example new 'class' column:
+y &lt;- bind(x, "class", "iif(Petal_Width&gt;2, int64(1), 0)")
+z &lt;- redimension(y, dim="class", FUN=max)
+
+## End(Not run)</pre>
+
+
+
+<h1>Rename a SciDB array.</h1>
+
+
+<table width="100%" summary="page for rename"><tr><td>rename</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Rename a SciDB array.
+</h2>
+
+<h3>Description</h3>
+
+<p>Rename a SciDB array, returning a new reference object and optionally
+setting persistence of the object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+  rename(A, name=A@name, gc)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>A</code></td>
+<td>
+<p> A <code>scidb</code> or <code>scidbdf</code> object.  </p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>An optional new name for the object.</p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>An optional logical value indicating object persistence. If
+TRUE, then the backing SciDB array will be deleted by the R garbage collector
+when corresponding R references are deleted.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>repart</h1>
+
+
+<table width="100%" summary="page for repart"><tr><td>repart</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+repart
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>repart</code> function is a wrapper to the SciDB 'repart' operator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+repart(x, schema, upper, chunk, overlap, eval=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A SciDB array object of class scidb or scidbdf.</p>
+</td></tr>
+<tr valign="top"><td><code>schema</code></td>
+<td>
+<p>An optional character array schema.</p>
+</td></tr>
+<tr valign="top"><td><code>upper</code></td>
+<td>
+<p>An optional vector of new array upper bounds.</p>
+</td></tr>
+<tr valign="top"><td><code>chunk</code></td>
+<td>
+<p>An optional vector of new array chunk sizes.</p>
+</td></tr>
+<tr valign="top"><td><code>overlap</code></td>
+<td>
+<p>An optional vector of new array overlap values.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Repartition SciDB array data by chaning the array chunk sizes and/or
+overlap values. This function is also used to change the upper bound of
+an array coordinate axis.
+</p>
+<p>If <code>schema</code> is specified, the remaining shape arguments are ignored.
+</p>
+<p>The arguments <code>upper, chunk</code>, and <code>overlap</code> must each have the same
+number of elements as the dimension of the SciDB array <code>x</code>. The
+<code>upper</code> argument should contain double-precision integer values (standard
+R array index values). The <code>chunk</code> and <code>overlap</code> arguments should
+contain integer values.
+</p>
+<p>Optional arguments left unspecified remain unchanged in the output array.
+</p>
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Results
+can be composed to form complex query expressions that can be evaluated in one
+transaction.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Add chunk overlap to an array:
+
+x &lt;- as.scidb(iris)
+y &lt;- repart(x, overlap=3)
+
+## End(Not run)</pre>
+
+
+
+<h1>Methods for Function 'reshape' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for reshape-methods"><tr><td>reshape-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>reshape</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Change the dimensionality of a SciDB array object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+reshape(data, schema, shape, dimnames, start, chunks, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>A <code>scidb</code> array object.</p>
+</td></tr>
+<tr valign="top"><td><code>schema</code></td>
+<td>
+<p>Optional character-valued schema.</p>
+</td></tr>
+<tr valign="top"><td><code>shape</code></td>
+<td>
+<p>An integer vector of new dimension sizes.</p>
+</td></tr>
+<tr valign="top"><td><code>dimnames</code></td>
+<td>
+<p>An optional integer vector of new dimension names.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>An optional integer vector of new dimension starting coordinates.</p>
+</td></tr>
+<tr valign="top"><td><code>chunks</code></td>
+<td>
+<p>An optional integer vector of new dimension chunk sizes.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>schema</code> is specified the other shape arguments are ignored.
+</p>
+<p>The product of the entries of the <code>shape</code> vector must match the product of
+the dimensions of <code>data</code>.
+</p>
+<p>The optional <code>dimnames</code>, <code>start</code> and <code>chunks</code> arguments must
+match the length of <code>shape</code> if they are supplied.
+</p>
+<p>If not specified in either <code>schema</code> or <code>start</code>, the output
+array will start at the origin.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> reference object. </p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a 5 x 4 matrix
+X &lt;- as.scidb(matrix(rnorm(20),5))
+
+# Reshape into a 3-dimensional 2x2x5 array
+Y &lt;- reshape(X, c(2,2,5))
+
+## End(Not run)
+</pre>
+
+
+
+<h1>schema</h1>
+
+
+<table width="100%" summary="page for schema"><tr><td>schema</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+schema
+</h2>
+
+<h3>Description</h3>
+
+<p>Return the SciDB array schema.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+schema(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An object of class <code>scidb</code> or <code>scidbdf</code></p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>The SciDB array schema.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function is nearly equivalent to <code>x@schema</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Upload data to create a 10x10 SciDB matrix
+A &lt;- as.scidb(matrix(rnorm(100),10))
+schema(A)
+A@schema
+
+## End(Not run)</pre>
+
+
+
+<h1>scidb_attributes</h1>
+
+
+<table width="100%" summary="page for scidb_attributes"><tr><td>scidb_attributes</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+scidb_attributes
+</h2>
+
+<h3>Description</h3>
+
+<p>Return a vector of SciDB array attribute names.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidb_attributes(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An object of class <code>scidb</code> or <code>scidbdf</code></p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A character vector of SciDB array dimension names.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Upload data to create a 10x10 SciDB matrix
+A &lt;- as.scidb(matrix(rnorm(100),10))
+scidb_attributes(A)
+
+## End(Not run)</pre>
+
+
+
+<h1>Class '&quot;scidb&quot;'</h1>
+
+
+<table width="100%" summary="page for scidb-class"><tr><td>scidb-class</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Class <code>"scidb"</code></h2>
+
+<h3>Description</h3>
+
+<p>A class that represents SciDB arrays as R arrays.</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Objects can be created by calls of the form <code>new("scidb", ...)</code>,
+<code>scidb("ARRAY_NAME", ...)</code>, or <code>as.scidb(R_MATRIX, ...)</code>.
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt><code>name</code>:</dt><dd><p>Object of class <code>"character"</code> scidb array name. </p>
+</dd>
+<dt><code>attributes</code>:</dt><dd><p>Object of class <code>"character"</code> Vector of SciDB attribute names. </p>
+</dd>
+<dt><code>dimensions</code>:</dt><dd><p>Object of class <code>"character"</code> Vector of SciDB dimension names. </p>
+</dd>
+<dt><code>schema</code>:</dt><dd><p>Object of class <code>"character"</code> SciDB array schema. </p>
+</dd>
+<dt><code>gc</code>:</dt><dd><p>Object of class <code>"environment"</code> An environment used to link the SciDB array to the R garbage collector. </p>
+</dd>
+<dt><code>.S3Class</code>:</dt><dd><p>Object of class <code>"character"</code> ~~ </p>
+</dd>
+</dl>
+
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt>%*%</dt><dd><p><code>signature(x = "scidb", y = "scidb")</code>: ... </p>
+</dd>
+<dt>%*%</dt><dd><p><code>signature(x = "scidb", y = "matrix")</code>: ... </p>
+</dd>
+<dt>%*%</dt><dd><p><code>signature(x = "matrix", y = "scidb")</code>: ... </p>
+</dd>
+<dt>%*%</dt><dd><p><code>signature(x = "scidb", y = "numeric")</code>: ... </p>
+</dd>
+<dt>%*%</dt><dd><p><code>signature(x = "numeric", y = "scidb")</code>: ... </p>
+</dd>
+<dt>%*%</dt><dd><p><code>signature(x = "scidb", y = "scidbdf")</code>: ... </p>
+</dd>
+<dt>crossprod</dt><dd><p><code>signature(x = "scidb", y = "scidb")</code>: ... </p>
+</dd>
+<dt>tcrossprod</dt><dd><p><code>signature(x = "scidb", y = "scidb")</code>: ... </p>
+</dd>
+<dt>crossprod</dt><dd><p><code>signature(x = "scidb", y = "missing")</code>: ... </p>
+</dd>
+<dt>tcrossprod</dt><dd><p><code>signature(x = "scidb", y = "missing")</code>: ... </p>
+</dd>
+<dt>is.scidb</dt><dd><p><code>signature(x = "ANY")</code>: ... </p>
+</dd>
+<dt>print</dt><dd><p><code>signature(x = "scidb")</code>: ... </p>
+</dd>
+<dt>head</dt><dd><p><code>signature(x = "scidb")</code>: ... </p>
+</dd>
+<dt>tail</dt><dd><p><code>signature(x = "scidb")</code>: ... </p>
+</dd>
+<dt>apply</dt><dd><p><code>signature(x = "scidb")</code>: ... </p>
+</dd>
+<dt>regrid</dt><dd><p><code>signature(x = "scidb")</code>: <code>regrid(x, grid=c(m,...), expr="avg(attribute)")</code>
+Decimate the n-d SciDB array <code>x</code> by binning its coordinate system according to the <code>grid</code> argument and applying the aggregate expression on each bin. The <code>grid</code> argument must be the same length as the dimension of the array <code>x</code>. For example if <code>x</code> is a 10x10 matrix, then <code>regrid(x, c(2,1))</code> returns a 5x10 matrix replacing the rows with the average of values along every two rows.
+</p>
+</dd>
+<dt>xgrid</dt><dd><p><code>signature(x = "scidb")</code>: <code>xgrid(x, grid=c(m,...))</code>
+Prolong the coordinate system of the n-d SciDB array <code>x</code> by replicating its values according to the <code>grid</code> parameter. In some cases, <code>xgrid</code> can be the inverse operation of <code>regrid</code>. For example if <code>x</code> is a 10x10 matrix, then <code>xgrid(x, c(2,1))</code> returns a 20x10 matrix, replicating values twice along the row dimension.
+</p>
+</dd>
+<dt>Filter</dt><dd><p><code>signature(f="character", x = "scidb")</code>: <code>Filter(f,x)</code>
+'Filter' masks elements of a vector for which a predicate (logical) SciDB expression 'f' returns false by making them empty, returning a sparse version of the array.
+</p>
+</dd>
+<dt>image</dt><dd><p><code>signature(x = "scidb")</code>: <code>image(x, grid=c(m,n), op="sum(attribute)")</code>
+Display a heatmap-like image of the 2-d scidb array reference object <code>x</code>.
+<code>grid(m,n)</code> specifies the repartitioned array block sizes and <code>op</code> is a valid SciDB aggregation function applied to the repartitioned chunks. </p>
+</dd>
+<dt>diag</dt><dd><p><code>signature(x = "scidb")</code>: Return the diagonal of a SciDB matrix as a new 1d SciDB array (a vector).</p>
+</dd>
+<dt>show</dt><dd><p><code>signature(object = "scidb")</code>: ... </p>
+</dd>
+<dt>t</dt><dd><p><code>signature(x = "scidb")</code>: <code>t(x)</code>
+Return the transpose of the matrix <code>x</code>.
+</p>
+</dd>
+<dt>unpack</dt><dd><p><code>unpack(x = "scidb")</code>: <code>unpack(x)</code>
+Return a 1-D representation of an array using the SciDB array unpack operator.
+</p>
+</dd>
+<dt>diag</dt><dd><p><code>signature(x = "scidb")</code>: Return the diagonal of a SciDB matrix as a new 1d SciDB array (a vector).</p>
+</dd>
+<dt>sin</dt><dd><p><code>signature(x = "scidb")</code>: <code>sin(x)</code>
+Return an array with the sine of each element of the array <code>x</code>. The active attribute is used and should be numeric. The returned array contains a new attibute with &quot;_sin&quot; appended containing the result. Other trig functions (<code>cos, tan, asin, acos, atan</code>) act similarly.
+</p>
+</dd>
+<dt>abs</dt><dd><p><code>signature(x = "scidb")</code>: <code>cos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>cos</dt><dd><p><code>signature(x = "scidb")</code>: <code>cos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>tan</dt><dd><p><code>signature(x = "scidb")</code>: <code>tan(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>asin</dt><dd><p><code>signature(x = "scidb")</code>: <code>asin(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>acos</dt><dd><p><code>signature(x = "scidb")</code>: <code>acos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>atan</dt><dd><p><code>signature(x = "scidb")</code>: <code>atan(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+</dl>
+
+
+
+<h3>Notes</h3>
+
+<p>SciDB arrays are general n-dimensional sparse arrays with integer dimensions.
+The <code>scidb</code> class represents SciDB arrays in a way that mimics standard R
+arrays in many ways. The <code>scidbdf</code> class represents one-dimensional SciDB
+arrays with one or more attributes that mimic R data frames.
+</p>
+<p>Matrix arithmetic operations are overloaded for 2-D numeric arrays.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+
+<h1>Connect to a SciDB database.</h1>
+
+
+<table width="100%" summary="page for scidbconnect"><tr><td>scidbconnect</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Connect to a SciDB database.  </h2>
+
+<h3>Description</h3>
+
+<p>Connect to a SciDB database.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidbconnect(host=options("scidb.default_shim_host")[[1]],
+             port=options("scidb.default_shim_port")[[1]],
+             username, password)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>host</code></td>
+<td>
+
+<p>The host name or I.P. address of the SciDB database
+instance to connect to (character).
+</p>
+</td></tr>
+<tr valign="top"><td><code>port</code></td>
+<td>
+
+<p>The integer port number of the SciDB database simple HTTP service.
+The default shim ports are 8080 (open) and 8083 (SSL encrypted).
+</p>
+</td></tr>
+<tr valign="top"><td><code>username</code></td>
+<td>
+<p>Optional authentication username (character).</p>
+</td></tr>
+<tr valign="top"><td><code>password</code></td>
+<td>
+<p>Optional authentication password (character).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The SciDB connection state is maintained internally to the <code>scidb</code>
+package. We internalize state to facilitate operations involving <code>scidb</code>
+objects.
+</p>
+<p>Thus, only one open SciDB connection is supported at
+a time.
+</p>
+<p>One may connect to and use multiple SciDB databases by sequentially calling
+<code>scidbconnect</code> between operations. Note that <code>scidb</code> objects are not
+valid across different SciDB databases.
+</p>
+<p>Use the optional <code>username</code> and <code>password</code> arguments to authenticate
+the connection with the shim service. Authenticated connections require 
+an encrypted connection with shim, available by default on port 8083.
+</p>
+
+
+<h3>Value</h3>
+
+<p>NULL is invisibly returned. SciDB connection errors
+are propagated to R and may be handled with the usual
+R error handling mechanisms.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Disconnection is automatically handled by the package.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Class '&quot;scidbdf&quot;'</h1>
+
+
+<table width="100%" summary="page for scidbdf-class"><tr><td>scidbdf-class</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Class <code>"scidbdf"</code></h2>
+
+<h3>Description</h3>
+
+<p>A class that represents 1D SciDB arrays similarly to R data.frames.</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Objects can be created by calls of the form <code>new("scidbdf", ...)</code>,
+<code>scidb("ARRAY_NAME", ...)</code>, or <code>as.scidb(R_DATA_FRAME, ...)</code>.
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt><code>name</code>:</dt><dd><p>Object of class <code>"character"</code> scidb array name. </p>
+</dd>
+<dt><code>attributes</code>:</dt><dd><p>Object of class <code>"character"</code> Vector of SciDB attribute names. </p>
+</dd>
+<dt><code>dimensions</code>:</dt><dd><p>Object of class <code>"character"</code> Vector of SciDB dimension names. </p>
+</dd>
+<dt><code>schema</code>:</dt><dd><p>Object of class <code>"character"</code> SciDB array schema.</p>
+</dd> 
+<dt><code>gc</code>:</dt><dd><p>Object of class <code>"environment"</code> An environment used to link the SciDB array to the R garbage collector. </p>
+</dd>
+<dt><code>.S3Class</code>:</dt><dd><p>Object of class <code>"character"</code> ~~ </p>
+</dd>
+</dl>
+
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt>is.scidbdf</dt><dd><p><code>signature(x = "scidbdf")</code>: ... </p>
+</dd>
+<dt>is.scidbdf</dt><dd><p><code>signature(x = "ANY")</code>: ... </p>
+</dd>
+<dt>print</dt><dd><p><code>signature(x = "scidbdf")</code>: ... </p>
+</dd>
+<dt>head</dt><dd><p><code>signature(x = "scidbdf")</code>: ... </p>
+</dd>
+<dt>tail</dt><dd><p><code>signature(x = "scidbdf")</code>: ... </p>
+</dd>
+<dt>show</dt><dd><p><code>signature(object = "scidbdf")</code>: ... </p>
+</dd>
+<dt>Filter</dt><dd><p><code>signature(f="character", x = "scidbdf")</code>: <code>Filter(f,x)</code>
+'Filter' masks elements of a vector for which a predicate (logical) SciDB expression 'f' returns false by making them empty, returning a sparse version of the array.
+</p>
+</dd>
+<dt>sin</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>sin(x)</code>
+Return an array with the sine of each element of the array <code>x</code>. The first listed attribute is used and should be numeric. The returned array contains a new attibute with &quot;_sin&quot; appended containing the result. Additional trig functions (<code>cos, tan, asin, acos, atan</code>) act similarly.
+</p>
+</dd>
+<dt>abs</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>cos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>cos</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>cos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>tan</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>tan(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>asin</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>asin(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>acos</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>acos(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+<dt>atan</dt><dd><p><code>signature(x = "scidbdf")</code>: <code>atan(x)</code> See doc. for <code>sin</code>.</p>
+</dd>
+</dl>
+
+
+
+<h3>Notes</h3>
+
+<p>Like the related <code>scidb</code> class, the <code>scidbdf</code> class represents
+SciDB arrays as R objects. The <code>scidbdf</code> class presents 1-D SciDB arrays,
+potentially with many SciDB attributes (variables), as a data.frame-like object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Disconnect from a SciDB database.</h1>
+
+
+<table width="100%" summary="page for scidbdisconnect"><tr><td>scidbdisconnect</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Disconnect from a SciDB database.
+</h2>
+
+<h3>Description</h3>
+
+<p>SciDB connections are automatically disconnected by the package
+in normal practice. The <code>scidbdisconnect</code> function forces
+the current connection to disconnect.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidbdisconnect()
+</pre>
+
+
+<h3>Value</h3>
+
+<p>NULL is invisibly returned.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>scidbeval</h1>
+
+
+<table width="100%" summary="page for scidbeval"><tr><td>scidbeval</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+scidbeval
+</h2>
+
+<h3>Description</h3>
+
+<p>Evaluate a SciDB expression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidbeval(expr, eval=TRUE, name, gc)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>An R expression that evaluates to a 'scidb' or 'scidbdf' object.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>If TRUE, return a 'scidb' or 'scidbdf' object that has been evaluated by the databas and stored to a SciDB array.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>An optional character value that names the stored SciDB array.</p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>An optional logical value that, when TRUE, ties the result to the R garbage collector.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Either a <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Many functions in the SciDB package accept un-evaluated expresions. One can compose these objects to form complex query expressions that can be evaluated in one transaction.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+A &lt;- as.scidb(matrix(rnorm(25),5))
+B &lt;- A + A   # Returns a SciDB array promise (not evaluated yet)
+C &lt;- scidbeval(A + A) # Returns a SciDB array that has been evaluated and stored
+
+## End(Not run)</pre>
+
+
+
+<h1>List SciDB database items.</h1>
+
+
+<table width="100%" summary="page for scidblist"><tr><td>scidblist</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+List SciDB database items.
+</h2>
+
+<h3>Description</h3>
+
+<p>List arrays and various other items available in a SciDB database.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidblist(pattern, type = c("arrays", "operators", "functions", "types",
+                            "aggregates", "instances","queries","libraries"),
+          verbose = FALSE, n = Inf)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>pattern</code></td>
+<td>
+
+<p>Filter the list by a regular-expression style pattern.
+</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+
+<p>A character string indicating the type of SciDB item to list&ndash;defaults to 'array.'
+</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+
+<p>Include extra available information for some items (arrays, in particular).
+</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+
+<p>Maximum number of rows to return.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A data frame of listed items.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# List information about the SciDB cluster we're connected to:
+scidblist('instances')
+
+# List all arrays:
+scidblist()
+
+# List all arrays beginning with "A:"
+scidblist(pattern="^A")
+
+## End(Not run)</pre>
+
+
+
+<h1>SciDB interface package.</h1>
+
+
+<table width="100%" summary="page for scidb-package"><tr><td>scidb-package</td><td align="right">R Documentation</td></tr></table>
+
+<h2> SciDB interface package.  </h2>
+
+<h3>Description</h3>
+
+<p>The scidb package provides basic functions
+that move data between R and SciDB and issue SciDB queries.
+</p>
+
+
+<h3>Details</h3>
+
+
+<table summary="Rd table">
+<tr>
+ <td align="left">
+Package: </td><td align="left"> scidb</td>
+</tr>
+<tr>
+ <td align="left">
+Type: </td><td align="left"> Package</td>
+</tr>
+<tr>
+ <td align="left">
+Version: </td><td align="left"> 0.0</td>
+</tr>
+<tr>
+ <td align="left">
+Date: </td><td align="left"> 2012-07-18</td>
+</tr>
+<tr>
+ <td align="left">
+License: </td><td align="left"> GPL3</td>
+</tr>
+<tr>
+ <td align="left">
+Depends: </td><td align="left"> methods</td>
+</tr>
+<tr>
+ <td align="left">
+</td>
+</tr>
+
+</table>
+
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+<p>Maintainer: B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Create a 'scidb' reference object.</h1>
+
+
+<table width="100%" summary="page for scidb"><tr><td>scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Create a <code>scidb</code> reference object.
+</h2>
+
+<h3>Description</h3>
+
+<p>Create an array-like R object reference to a SciDB array.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidb(name, gc, `data.frame`)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>Name of the SciDB array to reference. </p>
+</td></tr>
+<tr valign="top"><td><code>gc</code></td>
+<td>
+<p>TRUE means SciDB array shall be removed when R object is garbage collected or R exits. FALSE means SciDB array persists.</p>
+</td></tr>
+<tr valign="top"><td><code>data.frame</code></td>
+<td>
+<p>Return a data.frame-like object (requires 1D SciDB array).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The referenced array may be any SciDB array. One-dimensional SciDB arrays
+may be represented as data.frame-like objects in which the SciDB array
+attributes appear as data.frame columns. Alternatively, 1-d SciDB arrays
+may be represented as vectors by setting <code>data.frame=FALSE</code>.
+</p>
+<p>SciDB arrays of dimension 2 or more appear as R arrays.
+</p>
+<p>Data frame like representations use the <code>scidbdf</code> class.
+N-d array objects and vectors use the <code>scidb</code> class.
+</p>
+<p>The <code>scidb</code> class supports sparse and dense SciDB arrays of any dimension.
+Attribute types real, integer (32-bit), logical, and single-character (one
+byte) are directly supported and may be downloaded to R. Other SciDB attribute
+types are indirectly supported.
+</p>
+<p>R does not have a native 64-bit integer type. SciDB uses signed 62-bit integer
+dimensions.  The <code>scidb</code> package uses R double-precision floating point
+integers to index SciDB integer dimensions, restricting R to dimension values
+below 2^(53).
+</p>
+<p>With the exception of the empty indexing operation, <code>[]</code>, subarray
+indexing operations return new SciDB reference array objects.  Use the empty
+indexing operation to materialize data from the SciDB backing array into a
+normal R array.
+</p>
+<p>Sparse SciDB matrices (2-d arrays) are materialized to R as sparse matrices.
+Higher dimensional sparse arrays are returned as lists of indices and values.
+See the vignette examples for a more compete discussion of sparsity and various
+indexing operations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object that references the indicated
+SciDB array.
+</p>
+
+
+<h3>Indexing</h3>
+
+<p>The <code>scidb</code> and <code>scidbdf</code> classes generally follow SciDB database
+indexing convention, which exhibits some differences with standard R indexing.
+In particular, note that the starting SciDB integer index is arbitrary, but
+often zero. The upper-left corner of R arrays is always indexed by [1,1,...].
+Subarray indexing operations use the SciDB convention. Thus, zero and negative
+indices are literally interpreted and passed to SciDB. In particular, negative
+indices do not indicate index omission, unlike standard R arrays.
+</p>
+<p>Additional indexing notes:
+</p>
+
+<ul>
+<li><p> Use empty brackets, <code>[]</code>, to materialize data back to R. Otherwise,
+indexing operations produce new SciDB array objects.
+</p>
+</li>
+<li><p> Use numeric indices in any dimension in the units of the underlying SciDB
+array coordinate system. Note that SciDB arrays generally are zero-indexed
+and may even have negative indices.
+</p>
+</li>
+<li><p> Numeric indexing may include contiguous ranges or vectors of distinct
+coordinate values, but repeated coordinate values in a single dimension are
+not allowed. Examples of valid index ranges include
+<code>[1:4, c(3,1,5), -10:15]</code>, but not <code>[c(1,3,1)]</code> for example.
+</p>
+</li>
+<li><p> The <code>scidbdf</code> class represents 1d SciDB arrays as data frame
+objects with array attributes as columns. Use either positional numeric
+or name-based indexing along columns, either with the dollar-sign notation
+or string indexing. See examples.
+</p>
+</li>
+<li><p> The <code>scidb</code> class supports labeled dimension indexing using
+R <code>rownames, colnames</code>, or <code>dimnames</code> settings. Labels assigned
+in this way must be provided by 1-d SciDB arrays that map the integer
+coordinates to character label values. See the examples.
+</p>
+</li>
+<li><p> The <code>scidb</code> class supports indexing by other SciDB arrays
+to achieve the effect of filtering by boolean expressions and similar
+operations, also illustrated below in the examples section.
+</p>
+</li>
+<li><p> Use the utility between function to avoid forming large sequences to
+represent huge indexing ranges. For example, use <code>[between(1,1e9)]</code>
+instead of <code>[1:1e9]</code>.
+</p>
+</li>
+<li><p> The <code>diag</code> function is supported for matrices and vectors.
+</p>
+</li></ul>
+
+<p>Indexing by array to select a vector of cell entries is not yet supported.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>between,diag,slice</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+scidbconnect()
+# A 1-d array representation as a data frame:
+data("iris")
+A &lt;- as.scidb(iris)
+# Inspect the backing SciDB array object details with str:
+str(A)
+
+# Subsetting returns a new SciDB array:
+A[1:2,]
+
+# Materialize data to R with empty brackets:
+A[1:2,][]
+
+# Subset data frame-like object columns with 1-based positional or character
+# indices. The following are all the same:
+A[,"Species"]
+A$Species
+A[,5]
+
+# Represent the 1-d array as a vector-like object instead:
+a &lt;- scidb(A, data.frame=FALSE)
+# Interrogate the SciDB array properties with str:
+str(a)
+
+# A matrix:
+set.seed(1)
+X &lt;- as.scidb( matrix(rnorm(20), nrow=5) )
+# Diagonal entries of X:
+diag(X)
+# A sparse matrix with just the diagonal of X:
+D = diag(diag(X))
+# Materialize this sparse array to R:
+D[]
+
+# Produce a sparse matrix of filtered entries and materialize to R:
+subset(X, "val &gt; 0")[]
+
+# Short-hand for the same effect:
+(X &gt; 0)[]
+
+# Assign row labels to X. Note! We make sure that the index array starts at the
+# same starting index as the matrix (zero in this example):
+rownames(X) &lt;- as.scidb(data.frame(letters[1:5]),start=0)
+# Index by label:
+X[c("c","a"), ]
+
+# Filter X by an auxillary SciDB array condition (we use the rownames array),
+# returning the result to R:
+X[rownames(X) &gt; "'b'", ][]
+
+
+# A 3-d array:
+X &lt;- build(dim=c(3,2,2),names=c("x","i","j","k"),data="i+j+k")
+
+# A sparse 3-d array filtered with subset:
+Y &lt;- subset(X, "x&gt;1")
+count(Y)
+Y[]
+
+## End(Not run)</pre>
+
+
+
+<h1>Remove an array.</h1>
+
+
+<table width="100%" summary="page for scidbremove"><tr><td>scidbremove</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Remove an array.
+</h2>
+
+<h3>Description</h3>
+
+<p>Remove (delete) an array from SciDB.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidbremove(x, error = warning, async, force, warn=TRUE, recursive=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>The name of the SciDB array to remove (character), or 
+a vector of array names to remove, or a <code>scidb</code> or <code>scidbdf</code>
+object.
+</p>
+</td></tr>
+<tr valign="top"><td><code>error</code></td>
+<td>
+<p>Error handling function.</p>
+</td></tr>
+<tr valign="top"><td><code>async</code></td>
+<td>
+<p>(Optional) logical: If TRUE, use async option in newer
+versions of SciDB shim interface to return faster by not waiting
+for the query to complete. The default value is FALSE.</p>
+</td></tr>
+<tr valign="top"><td><code>force</code></td>
+<td>
+<p>(Optional) logical: If TRUE, force removal of specified array,
+even if the <code>scidb.safe_remove</code> option is set to <code>TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>warn</code></td>
+<td>
+<p>(Optional) logical: Set to FALSE to disable warnings during removal.</p>
+</td></tr>
+<tr valign="top"><td><code>recursive</code></td>
+<td>
+<p>(Optional) logical: If true, remove the entire dependency graph of
+this array from SciDB.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Supply a user-defined error handling function to avoid stopping on error (for
+example trying to delete a non-existing array). For example, use
+<code>error=warning</code> to covert errors to warnings but still report them.
+</p>
+<p>The package option <code>scidb.safe_remove</code> adds some protection for
+accidentally removing arrays. When <code>TRUE</code> (the default value), only
+temporary arrays associated with the current R session can be removed without
+also setting the <code>force</code> option.  Specify <code>force=TRUE</code> to remove any
+specified array, or optionally set the <code>options(scidb.safe_remove=FALSE)</code>
+to disable this safety check.
+</p>
+<p>The <code>async</code> option does not really do anything yet. It will in a future
+version.
+</p>
+<p>Use <code>recursive=TRUE</code> with great care. It recursively calls <code>scidbremove</code>
+on the entire dependency graph of an array object.
+</p>
+
+
+<h3>Value</h3>
+
+<p>NULL is invisibly returned. SciDB errors are returned as
+normal R errors and may be handled accordingly.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+data("iris")
+x = as.scidb(iris)
+# This is the SciDB array name corresponding to x:
+print(x@name)
+
+# Let's make an array with a different name:
+y = as.scidb(iris, name="iris")
+print(y@name)
+
+# Removing everything will only delete arrays whose name begin with
+# R_array by default:
+scidbremove(scidblist())
+scidblist()
+
+# To remove the 'iris' array, use force=TRUE:
+scidbremove("iris", force=TRUE)
+scidblist()
+
+## End(Not run)</pre>
+
+
+
+<h1>Low-level SciDB slice operator</h1>
+
+
+<table width="100%" summary="page for slice"><tr><td>slice</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Low-level SciDB slice operator
+</h2>
+
+<h3>Description</h3>
+
+<p>Slice a SciDB array along a coordinate value returning a new SciDB array of lower dimension.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+slice(x, d, n, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  object.</p>
+</td></tr>
+<tr valign="top"><td><code>d</code></td>
+<td>
+<p>A character string representation of the coordinate axis to slice along.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>The value to slice on.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> object of lower dimension.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Build a 5x5 matrix:
+x &lt;- build("random()
+print(x[])
+
+# Slice the 2nd row (i=1 since SciDB matrices start with zero index by default)
+y &lt;- slice(x, "i", 1)
+print(y[])
+
+## End(Not run)</pre>
+
+
+
+<h1>Methods for Function 'sort' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for sort-methods"><tr><td>sort-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>sort</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Aggregate a SciDB array object grouped by a subset of its dimensions and/or attributes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+sort(x, decreasing=FALSE, attributes, eval)
+## S4 method for signature 'scidbdf'
+sort(x, decreasing=FALSE, attributes, eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>decreasing</code></td>
+<td>
+<p>A logical value: TRUE means sort in decreasing order.</p>
+</td></tr>
+<tr valign="top"><td><code>attributes</code></td>
+<td>
+<p>(Required) A character vector of attribute names from array <code>x</code> to sort on</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the result array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Create a new array reference object that represents the sorted version of array
+<code>x</code>.  The output array reference has the same shape and number of
+attributes as <code>x</code> but the specified attributes appear in sorted order.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> or <code>scidbdf</code> reference object.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a copy of the iris data frame in a 1-d SciDB array named "iris."
+# Note that SciDB attribute names will be changed to conform to SciDB
+# naming convention.
+x &lt;- as.scidb(iris,name="iris")
+
+# Sort x by Petal_Width and Petal_Length:
+a &lt;- sort(x, attributes=c("Petal_Width","Petal_Length"))
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Show the structure of a scidb object.</h1>
+
+
+<table width="100%" summary="page for str.scidb"><tr><td>str.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Show the structure of a scidb object.
+</h2>
+
+<h3>Description</h3>
+
+<p>Print a summary of the dimension structure of a scidb array object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+str(object, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p> a scidb array object.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> additional objects for str (see <code>str</code>).
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p><code>str</code> does not return anything, for efficiency reasons.  The
+obvious side effect is output to the terminal.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>Low-level SciDB subarray operator</h1>
+
+
+<table width="100%" summary="page for subarray"><tr><td>subarray</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Low-level SciDB subarray operator
+</h2>
+
+<h3>Description</h3>
+
+<p>Return a new SciDB subarray object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+subarray(x, limits, schema, between=FALSE, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  object.</p>
+</td></tr>
+<tr valign="top"><td><code>limits</code></td>
+<td>
+<p>A SciDB-style character string representation of the coordinate limits.</p>
+</td></tr>
+<tr valign="top"><td><code>schema</code></td>
+<td>
+<p>An optional SciDB array object or SciDB schema string that defines
+the coordinate limits.</p>
+</td></tr>
+<tr valign="top"><td><code>between</code></td>
+<td>
+<p>If TRUE, form a SciDB between-style query, otherwise use subarray.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>If TRUE, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+
+<h1>Methods for Function 'subset' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for subset-methods"><tr><td>subset-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>subset</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>SciDB <code>filter</code> operations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+subset(X,subset,eval)
+## S4 method for signature 'scidbdf'
+subset(X,subset,eval)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A <code>scidb</code> or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>A character string representing a SciDB filter expression.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Perform a SciDB <code>filter</code> operation on a SciDB array. The <code>subset</code> filter expression argument can be any valid SciDB filter operation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code>, <code>scidbdf</code> reference object. </p>
+
+
+<h3>Note</h3>
+
+<p>We use the function name <code>subset</code> because the R function <code>subset</code> closely matches the native functionality of the SciDB operator named <code>filter</code>. The R <code>filter</code> function is an unrelated timeseries function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a copy of the iris data frame in a 1-d SciDB array named "iris."
+# Note that SciDB attribute names will be changed to conform to SciDB
+# naming convention.
+x &lt;- as.scidb(iris,name="iris")
+
+y &lt;- subset(x,"Species='setosa'")
+
+## End(Not run)
+</pre>
+
+
+
+<h1>Replace SciDB NULL values with another value.</h1>
+
+
+<table width="100%" summary="page for substitute"><tr><td>substitute</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Replace SciDB NULL values with another value.
+</h2>
+
+<h3>Description</h3>
+
+<p>Replace SciDB NULL values with another value.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+substitute(x, value, `attribute`, `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A <code>scidb</code>  or <code>scidbdf</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>An optional scidb array containing the replacement value.</p>
+</td></tr>
+<tr valign="top"><td><code>attribute</code></td>
+<td>
+<p>An optional attribute to restrict NULL replacement to.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If true, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>value</code> is missing, a value of numeric zero, false, or the string &quot;0&quot; will be used
+to replace NULL values depending on the replacement attribute type.
+</p>
+<p>If <code>attribute</code> is missing, then an attempt will be made to replace all NULL values in the
+array.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A new <code>scidb</code> or <code>scidbdf</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- scidb("build(&lt;v:double null&gt;[i=1:3,3,0],'{1}[(null),(null),(null)]',true)")
+y &lt;- substitute(x)
+
+## End(Not run)</pre>
+
+
+
+<h1>Summarize scidb object class.</h1>
+
+
+<table width="100%" summary="page for summary.scidb"><tr><td>summary.scidb</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+Summarize scidb object class.
+</h2>
+
+<h3>Description</h3>
+
+<p>Summarize scidb object class. This is not a really useful function yet.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'scidb'
+summary(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> a scidb array object.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+
+<h1>svd</h1>
+
+
+<table width="100%" summary="page for svd"><tr><td>svd</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+svd
+</h2>
+
+<h3>Description</h3>
+
+<p>Compute a partial or full singular value decomposition of a SciDB matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+svd(x, nu, nv)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A scidb object representing a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>nu</code></td>
+<td>
+<p>Optional number of singular values/vectors to compute. See notes below.</p>
+</td></tr>
+<tr valign="top"><td><code>nv</code></td>
+<td>
+<p>Not used.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A list of three <code>scidb</code> objects corresponding to a matrix of left
+singular vectors, a vector of singular values, and a matrix of transposed
+right singular vectors, respectively.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If the <code>nu</code> argument is specified, the SciDB <code>tsvd</code> function will be
+used and the matrix <code>x</code> may be dense or sparse. Otherwise the full SVD is
+computed by SciDB and the matrix <code>x</code> must be dense. The <code>nv</code>
+argument is not used and appears in the function signature only
+for compatibility with the base <code>svd</code> function. This function always
+sets <code>nv</code> = <code>nu</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x &lt;- as.scidb(matrix(rnorm(500*500),500))
+y &lt;- svd(x)
+print(y)
+
+## End(Not run)</pre>
+
+
+
+<h1>Methods for Function 'sweep' in Package 'scidb'</h1>
+
+
+<table width="100%" summary="page for sweep-methods"><tr><td>sweep-methods</td><td align="right">R Documentation</td></tr></table>
+
+<h2>Methods for Function <code>sweep</code> in Package <span class="pkg">scidb</span></h2>
+
+<h3>Description</h3>
+
+<p>Return an array obtained from an input array by sweeping out a
+summary statistic.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S4 method for signature 'scidb'
+sweep(x, MARGIN, STATS, FUN = "-", eval = FALSE, name)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a <code>scidb</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>MARGIN</code></td>
+<td>
+<p>a vector of indices giving the extent(s) of 'x' which
+correspond to 'STATS'.</p>
+</td></tr>
+<tr valign="top"><td><code>STATS</code></td>
+<td>
+<p>the summary statistic which is to be swept out.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>the function to be used to carry out the sweep.
+(Default is &quot;-&quot;.)</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If TRUE, execute the query and store the reult array.
+Otherwise defer evaluation.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>If <code>x</code> is a multi-attribute array, specify the attribute
+to work on, default to the first listed array attribute.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>STATS</code> must be a vector whose length matches the dimension size
+of the specified <code>MARGIN</code>. Note that this is a more restrictive
+condition than the usual R <code>sweep</code> function.
+</p>
+<p>The default value of <code>FUN</code> is &quot;-&quot;. <code>FUN</code> must be a
+quoted binary operator.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>scidb</code> object. </p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+set.seed(1)
+A &lt;- as.scidb(matrix(rnorm(20),nrow=5))
+# Center the matrix
+B &lt;- sweep(A, MARGIN=2, STATS=apply(A,2,mean))
+# Let's see:
+apply(B,2,mean)[]
+
+## End(Not run)
+</pre>
+
+</div>
+
+<script>
+/**
+ * @author Louis Stowasser <louisstow@gmail.com>
+ * License: MIT
+ */
+function generateTOC (rootNode, startLevel) {
+  var lastLevel = 0;
+  startLevel = startLevel || 1; //which H# tag to start indexing.
+  
+  var html = "<ul>";
+ 
+  //loop every node in rootNode
+  for (var i = 0; i < rootNode.childNodes.length; ++i) {
+    var node = rootNode.childNodes[i];
+  
+	//skip nodes that aren't <H#> tags
+  	if (!node.tagName || !/H[1]/.test(node.tagName)) {
+  		continue;
+  	}
+  
+  	var level = +node.tagName.substr(1);
+  
+	//only parse at the start level
+  	if (level < startLevel) { continue; }
+  
+	//if the <H#> tag has any children, take the text of the first child
+	//else grab the text of the <H#> tag
+  	var name = node.innerText;
+  	if (node.children.length) { name = node.childNodes[0].innerText; }
+  	
+  	//skip this node if there is no name
+  	if (!name) { continue; }
+    
+   	//create a string that can be used for an anchor hash based
+    	//on the name but without dots or spaces
+  	var hashable = name.replace(/[\.\s]/g, "-");
+    
+    	//set the id of the <H#> tag to this hash
+  	node.id = hashable;
+  
+   	//generate the HTML
+  	if (level > lastLevel) {
+  		html += "";
+  	} else if (level < lastLevel) {
+  		html += (new Array(lastLevel - level + 2)).join("</ul></li>");
+  	} else {
+  		html += "</ul></li>";
+  	}
+  
+  	html += "<li><a class='lvl"+level+"' href='#" + hashable + "'>" + name + "</a><ul>";
+  	lastLevel = level;
+  }
+ 
+  html += "</ul>";
+  return html;
+}
+ 
+window.onload = function()
+{
+  document.getElementById("nav").innerHTML = generateTOC(document.getElementById("content"));
+};
+</script>
+</body>
+</html>
