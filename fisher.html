@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><title>R: scidb_fisher.test</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="R.css">
+</head><body>
+
+<table width="100%" summary="page for scidb_fisher.test"><tr><td>scidb_fisher.test</td><td align="right">R Documentation</td></tr></table>
+
+<h2>
+scidb_fisher.test
+</h2>
+
+<h3>Description</h3>
+
+<p>Performs Fisher's exact test for testing the null of independence
+of rows and columns in a contingency table with fixed marginals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+scidb_fisher.test(a,x="x",m="m",n="n",k="k",alternative="two.sided", `eval`=FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>a</code></td>
+<td>
+<p> a <code>scidb</code> array or <code>scidbdf</code> data frame object.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>The x value attribute name (see details below).</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>The m marginal value attribute name (see details below).</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>The m marginal value attribute name (see details below).</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>The m marginal value attribute name (see details below).</p>
+</td></tr>
+<tr valign="top"><td><code>alternative</code></td>
+<td>
+<p>indicates the alternative hypothesis and must be one of
+'&quot;two.sided&quot;', '&quot;greater&quot;' or '&quot;less&quot;'.</p>
+</td></tr>
+<tr valign="top"><td><code>eval</code></td>
+<td>
+<p>(Optional) If TRUE, execute the query and store the reult array. Otherwise defer evaluation.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For 2 by 2 tables, the null of conditional independence is equivalent to the
+hypothesis that the odds ratio equals one. &quot;Exact&quot; inference can be based on
+observing that in general, given all marginal totals fixed, the first element
+of the contingency table has a non-central hypergeometric distribution with
+non-centrality parameter given by the odds ratio (Fisher, 1935).
+</p>
+<p>Consider the following 2x2 contingency table:
+</p>
+
+<table summary="Rd table">
+<tr>
+ <td align="left">
+</td><td align="center"> Class I YES</td><td align="center"> Class I NO</td><td align="center"> SUM</td>
+</tr>
+<tr>
+ <td align="left">
+Class II YES</td><td align="center"> x</td><td align="center"> a</td><td align="center"> k = x + a</td>
+</tr>
+<tr>
+ <td align="left">
+Class II NO</td><td align="center"> b</td><td align="center"> c</td><td align="center"> </td>
+</tr>
+<tr>
+ <td align="left">
+SUM</td><td align="center"> m = x + b</td><td align="center"> n = a + c</td><td align="center"> </td>
+</tr>
+<tr>
+ <td align="left">
+</td>
+</tr>
+
+</table>
+
+<p>The <code>x</code> input value specifies the name of the SciDB array attribute that
+indicates the number of 'yes' events in both classifications.
+The <code>m</code> input value specifies the name of the SciDB array attribute that
+indicates the marginal sum of the first column (sum of both classification 'yes' values).
+The <code>n</code> input value specifies the name of the SciDB array attribute that
+indicates the marginal sum of the second column (sum of both classification 'no' values).
+The <code>k</code> input value specifies the name of the SciDB array attribute that
+indicates the marginal sum of the first row.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A new SciDB array with two new attributes is returned (note that the returned attribute
+names may be adjusted to account for naming conflicts with existing array attributes):
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>pvalue</code></td>
+<td>
+<p>the p-value of the test.</p>
+</td></tr>
+<tr valign="top"><td><code>estimate</code></td>
+<td>
+<p>an estimate of the odds ratio.  Note that the conditional
+Maximum Likelihood Estimate (MLE) rather than the
+unconditional MLE (the sample odds ratio) is used.</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>B. W. Lewis &lt;blewis@paradigm4.com&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scidb</code>
+<code>phyper</code>
+<code>qhyper</code>
+<code>dhyper</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Create a test array:
+a &lt;- scidb("apply(build(&lt;x:int64&gt;[i=0:0,1,0],2),m,12,n,18,k,17)")
+scidb_fisher.test(a)[]
+
+# output looks like:
+#   x  m  n  k         pval   estimate
+# 0 2 12 18 17 0.0005367241 0.04693664
+
+
+## End(Not run)</pre>
+
+
+</body></html>
