@@ -78,9 +78,20 @@ Please feel free to <a href="https://github.com/Paradigm4/SciDBR">fork</a> this 
 <h1>
 <a name="new-features" class="anchor" href="#new-features"><span class="octicon octicon-link"></span></a>New features</h1>
 
-<h2>Query abort</h2>
-<p>
-Users can now abort queries with CTRL+C or the STOP button in RStudio (finally!).
+<h2>Database-related improvements</h2>
+<ul>
+<li>Support for SciDB version 14.3--also supports older SciDB releases
+<li>Dropping arrays from other R sessions requires a non-default option facilitating multiple-user settings.
+<li>Queries can be canceled with R user interrupts now (for example with CTRL + C or ESC).
+</ul>
+
+<h2>New functions</h2>
+<ul>
+<li>Support for Paradigm4 glm and a basic in-database model matrix builder
+<li>Support for Paradigm4 truncated SVD routine
+<li>Added hist, quantile, all.equal, antijoin, c (SciDB concat-like) function and many others
+</ul>
+
 
 <h2>Basic array concatenation and rbind</h2>
 <p>
@@ -254,34 +265,36 @@ Here is a list of the functions and method defined in the latest
 package version:
 </p>
 <pre>
-$                 %<%               Filter            Ops
-[                 abs               acos              aggregate
-all.equal         antijoin          apply             as.scidb
-asin              atan              attribute_rename  between
-bind              build             c                 cast
-cbind             colnames          colnames<-        cos
-count             crossprod         cumulate          default
-df2scidb          diag              diff              dim
-dimension_rename  dimensions        dimnames          dimnames<-
-glm.fit           glm_scidb         head              hist
-image             index_lookup      iquery            is.scidb
-is.scidbdf        lag               length            log
-max               mean              median            merge
-min               model_scidb       na.locf           names
-names<-           ncol              nrow              persist
-phyper            predict           print             project
-qhyper            quantile          rbind             redimension
-regrid            rename            repart            reshape
-rownames          rownames<-        schema            scidb
-scidb_attributes  scidb_fisher.test scidbconnect      scidbdf
-scidbeval         scidblist         scidbls           scidbremove
-scidbrm           sd                show              show_commit_log
-sin               slice             solve             sort
-sqrt              str               subarray          subset
-substitute        sum               summary           svd
-sweep             t                 tail              tan
-tcrossprod        unique            unpack            var
-xgrid
+!=                $                 %*%               %<%
+*                 +                 -                 /
+<                 <=                ==                >
+>=                Filter            Ops               [
+abs               acos              aggregate         all.equal
+antijoin          apply             as.scidb          asin
+atan              attribute_rename  between           bind
+build             c                 cast              cbind
+colnames          colnames<-        cos               count
+crossprod         cumulate          default           df2scidb
+diag              diff              dim               dimension_rename
+dimensions        dimnames          dimnames<-        glm.fit
+glm_scidb         head              hist              image
+index_lookup      iquery            is.scidb          is.scidbdf
+lag               length            log               max
+mean              median            merge             min
+model_scidb       na.locf           names             names<-
+ncol              nrow              persist           phyper
+predict           print             project           qhyper
+quantile          rbind             redimension       regrid
+rename            repart            reshape           rownames
+rownames<-        schema            scidb             scidb_attributes
+scidb_fisher.test scidbconnect      scidbdf           scidbeval
+scidblist         scidbls           scidbremove       scidbrm
+sd                show              show_commit_log   sin
+slice             solve             sort              sqrt
+str               subarray          subset            substitute
+sum               summary           svd               sweep
+t                 tail              tan               tcrossprod
+unique            unpack            var               xgrid
 </pre>
 
 
