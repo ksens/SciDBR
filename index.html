@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>SciDBR by Paradigm4</title>
+    <title>A SciDB interface package for R by Paradigm4</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -23,8 +23,8 @@
     </div>
     <div class="wrapper">
       <header>
-        <h1 class="header">SciDBR</h1>
-        <p class="header">R package for SciDB</p>
+        <h1 class="header">SciDB R</h1>
+        <p class="header">An R package for SciDB</p>
 
         <ul>
           <li><a class="buttons cran" href="http://cran.r-project.org/web/packages/scidb/index.html">View On CRAN</a></li>
@@ -58,7 +58,7 @@ install_github("SciDBR","paradigm4",quick=TRUE)
 That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
 <br/><br/>
 <blockquote>
-Note! The SciDBR package depends on the RCurl R package, which in turn requires
+Note! The scidb package depends on the RCurl R package, which in turn requires
 support for the curl library in your operating system. This might mean that you
 need to install a libcurl development library RPM or deb package on your OS.
 On RHEL and CentOS, this package is usually called 
@@ -68,8 +68,8 @@ and on Ubuntu it's called
 </blockquote>
 <br/><br/>
 
-<p>The SciDB R package requires installation of a simple open-source HTTP network
-service called on the SciDB coordinator.
+<p>The scidb package requires installation of a simple open-source HTTP network
+service called shim on the computer that SciDB instance 0 runs on.
 See <a href="https://github.com/Paradigm4/shim">http://github.com/paradigm4/shim</a>  for source code and installation
 instructions.</p>
 
@@ -78,188 +78,15 @@ Please feel free to <a href="https://github.com/Paradigm4/SciDBR">fork</a> this 
 <h1>
 <a name="new-features" class="anchor" href="#new-features"><span class="octicon octicon-link"></span></a>New features</h1>
 
-<h2>Database-related improvements</h2>
 <ul>
-<li>Support for SciDB version 14.3--also supports older SciDB releases
-<li>Dropping arrays from other R sessions requires a non-default option, facilitating multi-user database use.
-<li>Queries can be canceled with R user interrupts now (for example with CTRL + C or ESC).
+<li>Improved redimension, see online doc <a href="./rdoc.html#redimension">here</a>.
+<li>Support for SciDB version 14.12--also supports most older SciDB releases
+<li>Better support for dimension arrays (non-integer dimensions)
+<li>Bug fixes in merge/join arrays with different schema
+<li>Support for plain and TLS-encrypted PAM or HTTP digest authentication
+<li>Support for streaming SciDB results from server to R
 </ul>
 
-<h2>New functions</h2>
-<ul>
-<li>Support for Paradigm4 glm and a basic in-database model matrix builder.
-<li>Support for Paradigm4 truncated SVD routine.
-<li>Added hist, quantile, all.equal, antijoin, c (SciDB concat-like) function and many others.
-</ul>
-
-
-<h2>Basic array concatenation and rbind</h2>
-<p>
-Arrays and dataframe-like objects now support concatenation along their first dimension.
-
-<h2>Better handling of missing values</h2>
-<p>
-The array-like and dataframe-like classes now handle missing values in a
-uniform way. All SciDB missing codes are mapped to R NA values and R NA values
-are mapped to SciDB missing code zero.
-
-<h2>Windowed and moving-window aggregates</h2>
-<p>
-Multidimensional windowed and moving-window aggregates are now supported with
-simple syntax in the aggregate function. Windows can be defined along
-coordinate axes or number of (sparse) data values.
-
-
-<h2>
-<a name="scidb-labeled-coordinates" class="anchor" href="#scidb-labeled-coordinates"><span class="octicon octicon-link"></span></a>Labeled coordinates</h2>
-
-<p>
-SciDB arrays now support labeled coordinate indices using the standard R
-rownames, colnames, or dimnames settings. Assigned labels are provided by 1-d
-SciDB arrays that map the integer coordinate to a string label. Here is a
-simple example:
-</p>
-<pre><code>
-# Upload a test matrix to SciDB:
-X <- as.scidb( matrix(rnorm(20),nrow=5) )
-
-# Assign rownames to the SciDB matrix X.  SciDB matrix objects like X default
-# to zero-based indexing.  It's important that the label array have the same
-# starting index:
-rownames(X) <- as.scidb( data.frame(letters[1:5]), start=0)
-
-# We can now use strings to select subarrays and otherwise index X:
-X[c("b","a","d"), ]
-</code></pre>
-
-<h2>
-<a name="scidb-indexing" class="anchor" href="#scidb-indexing"><span class="octicon octicon-link"></span></a>More indexing goodness</h2>
-<p>
-Indexing SciDB array objects by other SciDB array objects to achieve the effect
-of filtering by boolean expressions and similar operations is now supported.
-Here is a simple example:
-</p>
-<pre><code>
-# Create a five-element SciDB vector:
-y <- as.scidb(runif(5))
-
-# Pick out rows of the SciDB matrix X fromt the last example that correspond
-# to entries of y that are positive:
-X[y > 0, ]
-</code></pre>
-
-<h2>
-<a name="scidb-array-promises" class="anchor" href="#scidb-array-promises"><span class="octicon octicon-link"></span></a>SciDB array promises</h2>
-
-<p>Most functions return objects that represent array promises--unevaluated
-SciDB query expressions with a result schema and a context environment that
-promise to return data. Use the new <code>scidbeval</code> function or the
-optional <code>eval</code> function argument when available to force evaluation
-to a materialized SciDB backing array. Otherwise use the objects normally,
-deferring evaluation until required.</p>
-
-<h2>
-<a name="r-sparse-matrix-support" class="anchor" href="#r-sparse-matrix-support"><span class="octicon octicon-link"></span></a>R sparse matrix support</h2>
-
-<p>The package now supports double-precision valued R sparse matrices
-defined via the <code>Matrix</code> package. Sparse SciDB matrices that are
-materialized to R are returned as sparse R matrices and vice-versa.</p>
-
-<h2>
-<a name="heatmaps" class="anchor" href="#heatmaps"><span class="octicon octicon-link"></span></a>Heatmaps</h2>
-
-<p>The package overloads the standard R <code>image</code> function to plot heatmaps
-of SciDB array objects (only applies to objects of class <code>scidb</code>).</p>
-
-<pre><code>library("devtools")
-install_github("SciDBR","Paradigm4")
-library("scidb")
-scidbconnect()      # Fill in your SciDB hostname as required
-
-# Create a SciDB array with some random entries
-iquery("store(build(&lt;v:double&gt;[i=0:999,100,0,j=0:999,250,0],random()%100),A)")
-
-# The SciDBR `image` function overloads the usual R image function to produce
-# heatmaps using SciDB's `regrid` aggregation operator. The 'grid' argument
-# specifies the output array size, and the 'op' argument specifies the
-# aggregation operator to apply.
-
-X = image(A, grid=c(100,100), op="avg(v)", useRaster=TRUE)
-</code></pre>
-
-<p><img src="https://raw.github.com/Paradigm4/SciDBR/master/inst/misc/image.jpg" alt="Example output" title="Example output"></p>
-
-<pre><code># Image accepts all the standard arguments to the R `image` function in
-# addition to the SciDB-specific `grid` and `op` arguments. The output axes are
-# labeled in the original array units. The scidb::image function returns the
-# interpolated heatmap array:
-
-dim(X)
-[1] 100 100
-</code></pre>
-
-<h2>
-<a name="aggregation-merge-apply-sweep-bind-and-related-functions" class="anchor" href="#aggregation-merge-apply-sweep-bind-and-related-functions"><span class="octicon octicon-link"></span></a>Aggregation, merge, apply, sweep, bind, and related functions</h2>
-
-<p>The package has a completely new implementation of aggregation, merge, and
-related database functions. The new functions apply to SciDB array and data
-frame-like objects. A still growing list of the functions includes:</p>
-
-<ul>
-<li>apply (the R-style apply, not the SciDB AFL apply--see <code>bind</code> for that)</li>
-<li>aggregate</li>
-<li>bind  (SciDB <code>apply</code> operator--generalizes R's <code>cbind</code>)</li>
-<li>index_lookup</li>
-<li>merge (SciDB <code>join</code> and <code>cross\_join</code> operators)</li>
-<li>project</li>
-<li>subset (SciDB <code>filter</code> operator)</li>
-<li>sort</li>
-<li>unique</li>
-<li>sweep</li>
-<li>build, cast, cumulate, slice, repart, redimension, unpack (wrappers to SciDB operators)</li>
-</ul><p>See for example <code>help("subset", package="scidb")</code> for help on the <code>subset</code>
-function, or any of the other functions.</p>
-
-<p>Perhaps the coolest new feature associated with the functions listed above is
-that they can be composed in a way that defers computation in SciDB to avoid
-unnecessary creation of intermediate arrays. The new functions all accept an
-argument named <code>eval</code> which, when set to FALSE, returns a new SciDB array
-promise object in place of evaluating the query and returning an array or data
-frame object.</p>
-
-<p>The eval argument is automatically set to FALSE when any of the above functions
-are directly composed in R, unless manually overriden by explicitly setting
-<code>eval=TRUE</code>. Consider the following example:</p>
-
-<pre><code>x = as.scidb(iris)
-head(x)
-  Sepal_Length Sepal_Width Petal_Length Petal_Width Species
-1          5.1         3.5          1.4         0.2  setosa
-2          4.9         3.0          1.4         0.2  setosa
-3          4.7         3.2          1.3         0.2  setosa
-4          4.6         3.1          1.5         0.2  setosa
-5          5.0         3.6          1.4         0.2  setosa
-6          5.4         3.9          1.7         0.4  setosa
-
-a = aggregate(
-      project(
-        bind(x,name="PxP", FUN="Petal_Length*Petal_Width"),
-        attributes=c("PxP","Species")),
-      by="Species", FUN="avg(PxP)")
-
-a[]
-Species_index PxP_avg    Species
-0             0  0.3656     setosa
-1             1  5.7204 versicolor
-2             2 11.2962  virginica
-</code></pre>
-
-<p>The composed <code>aggregate(project(bind(...</code> functions were carried out in
-the above example within a single SciDB transaction, storing only the result
-of the composed query.</p>
-
-<h2>
-<a name="more" class="anchor" href="#more"><span class="octicon octicon-link"></span></a>Lots more</h2>
 <p>
 Here is a list of the functions and method defined in the latest
 package version:

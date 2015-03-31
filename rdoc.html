@@ -8,8 +8,9 @@
 <h2>Table of Contents</h2>
 <div id="nav">
 </div>
-<hr>
 
+<hr>
+<div id="content">
 
 <table width="100%" summary="page for aggregate-methods"><tr><td>aggregate-methods</td><td align="right">R Documentation</td></tr></table>
 
@@ -753,11 +754,6 @@ bind(X, name, FUN, eval)
 </p>
 
 
-<h3>Note</h3>
-
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
-</p>
-
 
 <h3>Author(s)</h3>
 
@@ -854,12 +850,6 @@ build(data, dim, names, type, start, name, chunksize, overlap, gc=TRUE, `eval`)
 <h3>Value</h3>
 
 <p>A <code>scidb</code> object.
-</p>
-
-
-<h3>Note</h3>
-
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
 </p>
 
 
@@ -1289,12 +1279,6 @@ cumulate(x, expression, dimension, eval)
 <h3>Value</h3>
 
 <p>A <code>scidb</code> object.
-</p>
-
-
-<h3>Note</h3>
-
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
 </p>
 
 
@@ -3902,12 +3886,6 @@ project(X, attributes, eval)
 </p>
 
 
-<h3>Note</h3>
-
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency.
-</p>
-
-
 <h3>Author(s)</h3>
 
 <p>B. W. Lewis&lt;blewis@paradigm4.com&gt;
@@ -4188,13 +4166,6 @@ must explicitly specify an output schema.
 </p>
 
 
-<h3>Note</h3>
-
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Results
-can be composed to form complex query expressions that can be evaluated in one
-transaction.
-</p>
-
 
 <h3>Author(s)</h3>
 
@@ -4415,10 +4386,6 @@ R array index values). The <code>chunk</code> and <code>overlap</code> arguments
 contain integer values.
 </p>
 <p>Optional arguments left unspecified remain unchanged in the output array.
-</p>
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Results
-can be composed to form complex query expressions that can be evaluated in one
-transaction.
 </p>
 
 
@@ -5215,11 +5182,6 @@ temporary array (requires SciDB versions equal to or greater than 14.8).</p>
 
 <h3>Note</h3>
 
-<p>Use <code>eval=FALSE</code> to defer expression evaluation for efficiency. Many
-functions in the SciDB package accept un-evaluated expresions. One can compose
-these objects to form complex query expressions that can be evaluated in one
-transaction.
-</p>
 <p>Use SciDB temporary arrays with caution. They can speed up some
 computations by avoiding disk storage in some cases, but are not
 transactionally protected.
@@ -6722,6 +6684,7 @@ schema(z)
 
 ## End(Not run)</pre>
 
+</div>
 
 <script>
 /**
@@ -6739,7 +6702,7 @@ function generateTOC (rootNode, startLevel) {
     var node = rootNode.childNodes[i];
   
 	//skip nodes that aren't <H#> tags
-  	if (!node.tagName || !/H[1]/.test(node.tagName)) {
+  	if (!node.tagName || !/H[12]/.test(node.tagName)) {
   		continue;
   	}
   
@@ -6782,7 +6745,7 @@ function generateTOC (rootNode, startLevel) {
  
 window.onload = function()
 {
-  document.getElementById("nav").innerHTML = generateTOC(document.getElementById("content"));
+  document.getElementById("nav").innerHTML = generateTOC(document.getElementById("content"),2);
 };
 </script>
 </body>
