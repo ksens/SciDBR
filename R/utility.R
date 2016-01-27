@@ -63,7 +63,7 @@ scidb = function(name, gc, `data.frame`)
     return(.scidbeval(name@name, eval=FALSE, gc=gc, `data.frame`=`data.frame`, depend=list(name)))
   }
   escape = gsub("'","\\\\'",name,perl=TRUE)
-  query = sprintf("join(show('filter(%s,true)','afl'), explain_logical('filter(%s,true)','afl'))", escape,escape)
+  query = sprintf("join(show('filter(%s,true)','afl'), _explain_logical('filter(%s,true)','afl'))", escape,escape)
   query = iquery(query, `return`=TRUE)
   logical_plan = query$logical_plan
   schema = gsub("^.*<","<",query$schema, perl=TRUE)
