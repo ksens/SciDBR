@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -157,9 +158,99 @@ $(document).ready(function () {
 </ul></li>
 <li><a href="#package-options">Package options</a></li>
 <li><a href="#special-note-on-the-curl-package-dependency">Special note on the <code>curl</code> package dependency</a></li>
+=======
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>A SciDB interface package for R by Paradigm4</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="stylesheets/gh-fork-ribbon.css">
+    <!--[if lt IE 9]>
+        <link rel="stylesheet" href="stylesheets/gh-fork-ribbon.ie.css">
+        <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="github-fork-ribbon-wrapper right">
+        <div class="github-fork-ribbon">
+            <a href="https://github.com/Paradigm4/SciDBR">Fork me on GitHub</a>
+        </div>
+    </div>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">SciDB R</h1>
+        <p class="header">An R package for SciDB</p>
+
+        <ul>
+          <li><a class="buttons cran" href="http://cran.r-project.org/web/packages/scidb/index.html">View On CRAN</a></li>
+
+          <li class="download"><a class="buttons" href="https://github.com/Paradigm4/SciDBR/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/Paradigm4/SciDBR/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/Paradigm4/SciDBR">View On GitHub</a></li>
+        </ul>
+<a href="http://paradigm4.com">Paradigm4.com</a>
+<br/>
+<a href="http://scidb.org">SciDB.org</a>
+      </header>
+      <section>
+
+<p>Feel free to contribute to, examples in the project wiki here:
+<a href="https://github.com/Paradigm4/SciDBR/wiki/_pages">https://github.com/Paradigm4/SciDBR/wiki/_pages</a>.
+
+<p>The package vignette is here:
+<a href="https://raw.githubusercontent.com/Paradigm4/SciDBR/master/vignettes/scidb.pdf">scidb.pdf</a>
+
+<p>The package documentation is here:
+<a href="https://Paradigm4.github.io/SciDBR/rdoc.html">rdoc.html</a>
+
+<p>The current development version of this R package can always be installed
+directly from GitHub using the devtools package as follows:</p>
+
+<pre><code>
+library('devtools')
+install_github("SciDBR","paradigm4",quick=TRUE)
+</code></pre>
+That version passes all package check-in tests, but might still have minor CRAN package check warnings or notes. Check out the 'laboratory' branch for the bleeding-edge development version.
+<br/><br/>
+<blockquote>
+Note! The scidb package depends on the RCurl R package, which in turn requires
+support for the curl library in your operating system. This might mean that you
+need to install a libcurl development library RPM or deb package on your OS.
+On RHEL and CentOS, this package is usually called 
+<span style="font-family: courier;">libcurl-devel</span>
+and on Ubuntu it's called
+<span style="font-family: courier;">libcurl4-gnutls-dev</span>.
+</blockquote>
+<br/><br/>
+
+<p>The scidb package requires installation of a simple open-source HTTP network
+service called shim on the computer that SciDB instance 0 runs on.
+See <a href="https://github.com/Paradigm4/shim">http://github.com/paradigm4/shim</a>  for source code and installation
+instructions.</p>
+
+Please feel free to <a href="https://github.com/Paradigm4/SciDBR">fork</a> this project on Github and contribute.
+
+<h1>
+<a name="new-features" class="anchor" href="#new-features"><span class="octicon octicon-link"></span></a>New features</h1>
+
+<ul>
+<li>Improved redimension, see online doc <a href="./rdoc.html#redimension">here</a>.
+<li>Support for SciDB version 14.12--also supports most older SciDB releases
+<li>Better support for dimension arrays (non-integer dimensions)
+<li>Bug fixes in merge/join arrays with different schema
+<li>Support for plain and TLS-encrypted PAM or HTTP digest authentication
+<li>Support for streaming SciDB results from server to R
+>>>>>>> cffb6da48edb2aecc9db389d8aa0746eb9f6c588
 </ul>
 </div>
 
+<<<<<<< HEAD
 <div id="scidb" class="section level1">
 <h1>SciDB</h1>
 <p>SciDB is a free open-source database that organizes data in n-dimensional arrays. SciDB features include ACID transactions, parallel processing, distributed storage, and efficient sparse array storage. SciDB arrays consist of a coordinate system whose coordinates are called <em>dimensions</em>, and one or more values called <em>attributes</em> of distinct types at each coordinate.</p>
@@ -571,4 +662,73 @@ $(document).ready(function () {
 
 
 </body>
+=======
+<p>
+Here is a list of the functions and method defined in the latest
+package version:
+</p>
+<pre>
+<                       <=                      ==
+>                       >=                      -
+!=                      /                       [
+[<-                     $                       *
+%<=%                    %<%                     %==%
+%>=%                    %>%                     %*%
++                       abs                     acos
+aggregate               all.equal               antijoin
+apply                   asin                    as.scidb
+atan                    attribute_rename        bernoulli
+between                 bind                    bound
+build                   c                       cast
+cbind                   chunk_map               colnames
+colnames<-              cos                     count
+crossprod               cumulate                default
+df2scidb                diag                    diff
+dim                     dimension_rename        dimensions
+dimnames                dimnames<-              dist
+exp                     factor_scidb            Filter
+glm                     glm.fit                 glm_scidb
+head                    hist                    image
+index_lookup            iqdf                    iquery
+is.scidb                is.scidbdf              is.temp
+kmeans                  lag                     length
+levels_scidb            log                     max
+mean                    median                  merge
+min                     model_scidb             na.locf
+names                   names<-                 ncol
+nrow                    Ops                     order
+peek                    persist                 phyper
+predict                 print                   project
+qhyper                  quantile                rank
+rbind                   redimension             regrid
+remove_old_versions     rename                  repart
+replaceNA               reshape                 rownames
+row.names               row.names<-             rownames<-
+schema                  scidb                   scidb_attributes
+scidbconnect            scidb_coordinate_bounds scidb_coordinate_chunks
+scidb_coordinate_end    scidb_coordinate_overla scidb_coordinate_start
+scidbdf                 scidbdisconnect         scidbeval
+scidb_fisher.test       scidblist               scidbls
+scidb_nullable          scidbremove             scidbrm
+scidb_types             sd                      show
+show_commit_log         sin                     slice
+solve                   sort                    sqrt
+str                     subarray                subset
+sum                     summary                 svd
+sweep                   t                       tail
+tan                     tcrossprod              tsvd
+unbound                 unique                  unpack
+var                     xgrid
+</pre>
+
+
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+>>>>>>> cffb6da48edb2aecc9db389d8aa0746eb9f6c588
 </html>
