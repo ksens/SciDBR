@@ -4,7 +4,7 @@
 \alias{unique.scidb}
 \title{Filter unique elements from a SciDB array}
 \usage{
-\method{unique}{scidb}(x, incomparables = FALSE, ...)
+unique.scidb(x, incomparables = FALSE, ...)
 }
 \arguments{
 \item{x}{SciDB array}

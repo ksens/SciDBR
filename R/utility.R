@@ -103,7 +103,7 @@ is.temp = function(name)
 #' side effect.
 #' importFrom digest digest
 #' @export
-scidbconnect = function(host=options("scidb.default_shim_host")[[1]],
+oldscidbconnect = function(host=options("scidb.default_shim_host")[[1]],
                         port=options("scidb.default_shim_port")[[1]],
                         username, password,
                         auth_type="digest", protocol=c("http", "https"))
@@ -140,7 +140,7 @@ scidbconnect = function(host=options("scidb.default_shim_host")[[1]],
 # Update the scidb.version option for older systems (shim version unreliable)
   if(!compare_versions(options("scidb.version")[[1]], 15.12))
   {
-    v = iquery("list('libraries')", return=TRUE, binary=FALSE)
+    v = iquery("list('libraries')", `return`=TRUE)
     options(scidb.version=sprintf("%s.%s", v$major[1], v$minor[1]))
   }
 
@@ -150,8 +150,8 @@ scidbconnect = function(host=options("scidb.default_shim_host")[[1]],
         # SciDB setopt operator changed in version 15.12
         if(compare_versions(options("scidb.version")[[1]],15.12))
         { 
-          scidbquery(query="_setopt('precision','16')", release=1, resp=TRUE, stream=0L)
-        } else scidbquery(query="setopt('precision','16')", release=1, resp=TRUE, stream=0L),
+          iquery("_setopt('precision','16')", `return`=FALSE)
+        } else iquery("setopt('precision','16')", `return`=FALSE),
         error=function(e) stop("Connection error"))
   if(is.null(.scidbenv$uid))
   {
@@ -164,46 +164,42 @@ scidbconnect = function(host=options("scidb.default_shim_host")[[1]],
 # prototype_load_tools libraries:
   got_load = tryCatch(
     {
-      scidbquery(query="load_library('accelerated_io_tools')",
-               release=1, resp=FALSE, stream=0L)
+      iquery("load_library('accelerated_io_tools')", `return`=FALSE)
       TRUE
     }, error=function(e) FALSE)
   if(!got_load) got_load = tryCatch(
     {
-      scidbquery(query="load_library('load_tools')",
-               release=1, resp=FALSE, stream=0L)
+      iquery("load_library('load_tools')", `return`=FALSE)
       TRUE
     }, error=function(e) FALSE)
   if(!got_load) got_load = tryCatch(
     {
-      scidbquery(query="load_library('prototype_load_tools')",
-               release=1, resp=FALSE, stream=0L)
+      iquery("load_library('prototype_load_tools')", `return`=FALSE)
       TRUE
     }, error=function(e) FALSE)
   if(!got_load) warning("The load_tools SciDB plugin can't be found. load_tools is required to upload data.frames from R to SciDB. You can install the plugin from https://github.com/Paradigm4/load_tools")
 # Try to load the dense_linear_algebra library
   tryCatch(
-    scidbquery(query="load_library('dense_linear_algebra')",
-               release=1, resp=FALSE, stream=0L),
+    iquery(query="load_library('dense_linear_algebra')", `return`=FALSE),
     error=invisible)
 # Try to load the example_udos library (>= SciDB 13.6)
   tryCatch(
-    scidbquery(query="load_library('example_udos')", release=1, resp=FALSE, stream=0L),
+    iquery(query="load_library('example_udos')", `return`=FALSE),
     error=invisible)
 # Try to load the superfunpack
   tryCatch(
-    scidbquery(query="load_library('superfunpack')", release=1, resp=FALSE, stream=0L),
+    iquery(query="load_library('superfunpack')", `return`=FALSE),
     error=invisible)
 # Try to load the P4 library
   tryCatch(
-    scidbquery(query="load_library('linear_algebra')", release=1, resp=FALSE, stream=0L),
+    iquery(query="load_library('linear_algebra')", `return`=FALSE),
     error=invisible)
 # Try to load the chunk_unique library
   tryCatch(
-    scidbquery(query="load_library('cu')", release=1, resp=FALSE, stream=0L),
+    iquery(query="load_library('cu')", `return`=FALSE),
     error=invisible)
 # Save available operators
-  assign("ops", iquery("list('operators')", `return`=TRUE, binary=FALSE), envir=.scidbenv)
+  assign("ops", iquery("list('operators')", `return`=TRUE), envir=.scidbenv)
 
   invisible()
 }
@@ -222,8 +218,8 @@ scidblist = function(pattern,
                      verbose=FALSE, n=Inf)
 {
   type = match.arg(type)
-  if(n==Inf) n = -1   # non-intuitive read.table syntax
-  Q = iquery(paste("list('",type,"')",sep=""), return=TRUE, nrows=n, binary=FALSE)
+  if(n==Inf) n = -1
+  Q = iquery(paste("list('",type,"')",sep=""), `return`=TRUE)
   if(dim(Q)[1] == 0) return(NULL)
   z = Q[, -1, drop=FALSE]
   if(type=="arrays" && !verbose) {
@@ -271,11 +267,11 @@ scidbremove = function(x, error=warning, force, warn=TRUE, recursive=FALSE)
     query = sprintf("remove(%s)",y)
     if(grepl(sprintf("^R_array.*%s$",uid),y,perl=TRUE))
     {
-      tryCatch( scidbquery(query, release=1, stream=0L),
+      tryCatch( iquery(query, `return`=FALSE),
                 error=function(e) if(!recursive && warn)errfun(e))
     } else if(force)
     {
-      tryCatch( scidbquery(query, release=1, stream=0L),
+      tryCatch( iquery(query, `return`=FALSE),
                 error=function(e) if(!recursive && warn)errfun(e))
     } else if(warn)
     {
@@ -293,80 +289,6 @@ scidbremove = function(x, error=warning, force, warn=TRUE, recursive=FALSE)
 scidbrm = function(x, error=warning, ...) scidbremove(x, error, ...)
 
 
-# binary=FALSE is needed by some queries, don't get rid of it.
-#' Run a SciDB query, optionally returning the result.
-#' @param query a single SciDB query string
-#' @param return if \code{TRUE}, return the result
-#' @param binary set to \code{FALSE} to read result from SciDB in text form
-#' @param ... additional options passed to \code{read.table} when \code{binary=FALSE}
-#' @export
-iquery = function(query, `return`=FALSE, binary=TRUE, ...)
-{
-  DEBUG = FALSE
-  if(!is.null(options("scidb.debug")[[1]]) && TRUE == options("scidb.debug")[[1]]) DEBUG=TRUE
-  if(is.scidb(query))  query = query@name
-  qsplit = strsplit(query, ";")[[1]]
-  m = 1
-  n = -1    # Indicate to shim that we want all the output
-  for(query in qsplit)
-  {
-# Only return the last query, mimicking command-line iquery.
-    if(`return` && m == length(qsplit))
-    {
-      if(binary)
-      {
-        return(scidb_unpack_to_dataframe(query, ...))
-      }
-      ans = tryCatch(
-       {
-        # SciDB save syntax changed in 15.12
-        if(compare_versions(options("scidb.version")[[1]],15.12))
-        { 
-          sessionid = scidbquery(query, save="csv+:l", release=0)
-        } else sessionid = scidbquery(query, save="csv+", release=0)
-        dt1 = proc.time()
-        result = tryCatch(
-          {
-            SGET("/read_lines", list(id=sessionid, n=as.integer(n+1)))
-          },
-          error=function(e)
-          {
-             SGET("/cancel", list(id=sessionid))
-             SGET("/release_session", list(id=sessionid), err=FALSE)
-             stop(e)
-          })
-        SGET("/release_session", list(id=sessionid), err=FALSE)
-        if(DEBUG) cat("Data transfer time",(proc.time()-dt1)[3],"\n")
-        dt1 = proc.time()
-# Handle escaped quotes
-        result = gsub("\\\\'","''", result, perl=TRUE)
-        result = gsub("\\\\\"","''", result, perl=TRUE)
-# Map SciDB missing (aka null) to NA, but preserve DEFAULT null.
-# This sucky parsing is not a problem for binary transfers.
-        result = gsub("DEFAULT null","@#@#@#kjlkjlkj@#@#@555namnsaqnmnqqqo", result, perl=TRUE)
-        result = gsub("null","NA", result, perl=TRUE)
-        result = gsub("@#@#@#kjlkjlkj@#@#@555namnsaqnmnqqqo","DEFAULT null", result, perl=TRUE)
-        val = textConnection(result)
-        ret = c()
-        if(length(val) > 0)
-          ret = tryCatch(read.table(val, sep=",", stringsAsFactors=FALSE, header=TRUE, ...),
-                error = function(e) stop("SciDB query error"))
-        close(val)
-        if(DEBUG) cat("R parsing time",(proc.time()-dt1)[3],"\n")
-        ret
-       }, error = function(e)
-           {
-             stop(e)
-           })
-    } else
-    {
-      ans = scidbquery(query, release=1, stream=0L)
-    }
-    m = m + 1
-  }
-  if(!(`return`)) return(invisible())
-  ans
-}
 
 #' Recursively set all arrays in a \code{scidb} dependency graph to persist.
 #' @param x a \code{\link{scidb}} object

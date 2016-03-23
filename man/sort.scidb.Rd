@@ -4,7 +4,7 @@
 \alias{sort.scidb}
 \title{Sort a SciDB array}
 \usage{
-\method{sort}{scidb}(x, decreasing = FALSE, ...)
+sort.scidb(x, decreasing = FALSE, ...)
 }
 \arguments{
 \item{x}{a SciDB array}

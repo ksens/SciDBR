@@ -1,5 +1,8 @@
 CHANGES IN scidb 2.0.0:
 
+   o Using DBI and RJDBC now to talk to SciDB; uploads are limited to
+     SciDB running locally (via local file system)
+
    o Big change: all SciDB arrays are presented as data frames
 
    o Removed scidb array arithmetic
