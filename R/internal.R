@@ -95,10 +95,11 @@ aparser = function(x, expr)
 #' Nightmarish internal function that converts R expressions to SciDB expressions
 #' @param expr an R 'language' type object to parse
 #' @param sci a SciDB array 
+#' @param frame to evaluate expression for replacement values
 #' @keywords internal
 #' @return character-valued SciDB expression
 #' @importFrom codetools makeCodeWalker walkCode
-rewrite_subset_expression = function(expr, sci)
+rewrite_subset_expression = function(expr, sci, frame)
 {
   dims = dimensions(sci)
   n = length(dims)
@@ -106,7 +107,11 @@ rewrite_subset_expression = function(expr, sci)
   DEBUG = FALSE
   if(!is.null(options("scidb.debug")[[1]]) && TRUE == options("scidb.debug")[[1]]) DEBUG=TRUE
 
-  .toList = makeCodeWalker(call=function(e, w) lapply(e, walkCode, w),
+  .toList = makeCodeWalker(call=function(e, w)
+                                {
+                                  tryCatch(eval(e, frame),
+                                    error=function(err) lapply(e, walkCode, w))
+                                },
                            leaf=function(e, w) e)
 
 # Walk the ast for R expression x, annotating elements with identifying
@@ -114,36 +119,36 @@ rewrite_subset_expression = function(expr, sci)
 # Substitute evaluated R scalars for variables where possible (but not more
 # complext R expressions).  The output is a list that can be parsed by the
 # `.compose_r` function below.
-  .annotate = function(x, dims=NULL, attr=NULL, frames, op="")
+  .annotate = function(x, dims=NULL, attr=NULL, op="")
   {
     if(is.list(x))
     {
       if(length(x) > 1) op = c(op,as.character(x[[1]]))
-      return(lapply(x, .annotate, dims, attr, frames, op))
+      return(lapply(x, .annotate, dims, attr, op))
     }
     op = paste(op,collapse="")
     s = as.character(x)
     if(!(s %in% c(dims,attr, ">", "<", "!", "|", "=", "&", "||", "&&", "!=", "==", "<=", ">=")))
     {
-      test = lapply(c(globalenv(), frames), function(f)  # perhaps overkill
-      {
-        tryCatch(eval(x, f), error=function(e) e)
-      })
+      test = tryCatch(eval(x, frame), error=function(e) e)
       if(length(test) > 0)
       {
         test = test[!grepl("condition", lapply(test, class))]
         if(length(test) > 0)
         {
-          if(DEBUG) cat("Replacing symbol", s, "with")
-          s = tryCatch(as.character(test[[length(test)]]), error=function(e) s)
+          if(DEBUG) cat("Replacing symbol", s, "with ")
+          s = tryCatch(noE(test[[1]]), error=function(e) s)
           if(DEBUG) cat(s, "\n")
         }
       }
     }
-    attr(s,"what") = "element"
-    if("character" %in% class(x)) attr(s,"what") = "character"
-    if(nchar(gsub("null", "", gsub("[0-9 \\-\\.]+", "", s), ignore.case=TRUE)) == 0)
-      attr(s,"what") = "scalar"
+    attr(s, "what") = "element"
+    if(is.character(x))
+    {
+      attr(s, "what") = "character"
+    }
+    if(nchar(gsub("null", "", gsub("[0-9 -\\.]+", "", s, perl=TRUE), ignore.case=TRUE)) == 0)
+      attr(s, "what") = "scalar"
     if(any(dims %in% gsub(" ", "", s)) && nchar(gsub("[&(<>=) ]*", "", op)) == 0)
     {
       attr(s, "what") = "dimension"
@@ -195,7 +200,7 @@ rewrite_subset_expression = function(expr, sci)
     as.character(x)
   }
 
-  ans = .compose_r(.annotate(walkCode(expr, .toList), dims=dims, attr=scidb_attributes(sci), frames=sys.frames()))
+  ans = .compose_r(.annotate(walkCode(expr, .toList), dims=dims, attr=scidb_attributes(sci)))
   i   = grepl("::",ans)
   ans = gsub("==", "=", gsub("!", "not", gsub("\\|", "or", gsub("\\|\\|", "or",
           gsub("&", "and", gsub("&&", "and", gsub("!=", "<>", ans)))))))
@@ -222,7 +227,7 @@ rewrite_subset_expression = function(expr, sci)
       x2 = pmin(x2,y2)
       c(x1, x2)
     }, b, init=template)
-    b = gsub("Inf", "null", gsub("-Inf", "null", as.character(b)))
+    b = gsub("Inf", "null", gsub("-Inf", "null", sprintf("%.0f",b)))
     ans = gsub("and true", "", paste(ans, collapse=" "))
     if(nchar(gsub(" ", "", ans)) == 0 || gsub(" ", "", ans) == "true")
       return(sprintf("between(%s,%s)", sci@name,paste(b, collapse=",")))
@@ -289,10 +294,10 @@ create_temp_array = function(name, schema)
 # This is a fix for a SciDB issue that can unexpectedly change schema
 # bounds. And another fix to allow unexpected dimname and attribute name
 # changes. Arrgh.
-    if(schema != "" && !compare_schema(ans, schema, ignore_attributes=TRUE, ignore_dimnames=TRUE))
-    {
-      ans = repart(ans, schema)
-    }
+#    if(schema != "" && !compare_schema(ans, schema, ignore_attributes=TRUE, ignore_dimnames=TRUE))
+#    {
+#      ans = repart(ans, schema)
+#    }
   } else
   {
     ans = scidb(expr, gc=gc)

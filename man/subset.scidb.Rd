@@ -34,7 +34,11 @@ Simple R scalars and constants may be used in R expressions and they will
 be translated appropriately in the generated SciDB query. More complex
 R objects like functions can't be used, however, because the logical
 expressions are ultimately evaluated by SciDB. Dimension values are
-treated as integer values.
+treated as integer values. Values are evaulated using R dynamic scoping/
+nonstandard evaluation (NSE). Values are evaluated in the enclosing R environments
+first, then among the names of SciDB attributes and dimensions. Quote the entire
+expression to avoid NSE
+and force the expression to be evaluated verbatim in SciDB (see examples).
 
 Explicit grouping by parenthesis may be required to generate most
 optimal queries when attribute and dimension conditions are mixed together
@@ -56,12 +60,10 @@ z <- subset(x, Species == "setosa")
 # an attribute. Note the difference in the generated queries:
 
 y <- subset(x, "Species = 'setosa' and row > 40")
-y@name
 # [1] "filter(R_array5494563bc4e1101849601199,Species = 'setosa' and row > 40)"
 
 i <- 40
 z <- subset(x, Species == 'setosa' & row > i)
-z@name
 # [1] "filter(between(R_array5494563bc4e1101849601199,41,null),Species = 'setosa' )"
 
 # Important things to note:

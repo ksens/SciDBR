@@ -3,7 +3,6 @@
 # <attribute_1:type_1 NULL DEFAULT VALUE, attribute_2:type_2, ...>
 # [dimension_1=start:end,chunksize,overlap, dimension_2=start:end,chunksize,overlap, ...]
 
-# utility
 .dimsplitter = function(x)
 {
   if(is.character(x)) s = x
@@ -85,9 +84,9 @@ scidb_nullable = function(x)
   # SciDB schema syntax changed in 15.12
   if(compare_versions(options("scidb.version")[[1]],15.12))
   { 
-    return (! grepl("NOT NULL", scidb:::.attsplitter(x)))
+    return (! grepl("NOT NULL", .attsplitter(x)))
   }
-  grepl(" NULL", scidb:::.attsplitter(x))
+  grepl(" NULL", .attsplitter(x))
 }
 
 #' SciDB array dimension names
@@ -204,6 +203,7 @@ scidb_from_schemastring = function(s, expr=character())
               gc=new.env())
   obj@meta$schema = gsub("^.*<","<",s,perl=TRUE)
   obj@meta$logical_plan = ""
+  obj
 }
 
 # Build the attribute part of a SciDB array schema from a scidb, scidb object.

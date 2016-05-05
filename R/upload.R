@@ -74,8 +74,6 @@ fwrite = function(x, file=stdout(), sep="\t", format=paste(rep("%s", ncol(x)), c
   invisible()
 }
 
-
-
 matvec2scidb = function(X,
                         name=tmpnam(),
                         start,

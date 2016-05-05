@@ -19,8 +19,8 @@ Imports:
     DBI,
     RJDBC,
     methods,
-    utils,
     Matrix,
+    data.table,
     stats,
     graphics,
     codetools

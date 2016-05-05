@@ -15,7 +15,10 @@ scidbconnect = function(host="127.0.0.1",
 {
   driver = JDBC("org.scidb.jdbc.Driver", drv)
   assign("drv", driver, envir=.scidbenv)
-  assign("conn", dbConnect(driver, "jdbc:scidb://localhost"), envir=.scidbenv)
+  if(missing(user) || missing(passwd))
+    assign("conn", dbConnect(driver, "jdbc:scidb://localhost"), envir=.scidbenv)
+  else
+    assign("conn", dbConnect(driver, "jdbc:scidb://localhost", user=user, password=passwd), envir=.scidbenv)
 
 # Make AFL the default
   conn = get("conn", envir=.scidbenv)

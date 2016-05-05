@@ -235,7 +235,9 @@ project = function(x, attributes)
 #' @param x \code{scidb} array object
 #' @param expr Either a quoted SciDB filter expression, or an R expression involving array attributes and dimensions
 #' @note The \code{expr} value can include scalar R values, but not more complicated expressions since the expression
-#' is evaluated on the server inside SciDB (not R). Scalar R values are translated to constants in the SciDB expression.
+#' is evaluated on the server inside SciDB (not R). Scalar R values are translated to constants in the SciDB expression
+#' using R dynamic scoping/nonstandard evaluation (NSE). Quote full expressions to avoid NSE and force evaluation of
+#' the quoted expression in SciDB (see examples).
 #' @return a new \code{scidb} array object
 #' @keywords internal
 filter_scidb = function(x, expr)
@@ -254,7 +256,7 @@ filter_scidb = function(x, expr)
     query = sprintf("filter(%s,%s)", xname,expr)
   } else
   {
-    query = rewrite_subset_expression(substitute(expr), x)
+    query = rewrite_subset_expression(substitute(expr), x, parent.frame(2))
   }
   .scidbeval(query, depend=list(x))
 }
@@ -536,7 +538,11 @@ sort_scidb = function(x, decreasing=FALSE, ...)
 #' be translated appropriately in the generated SciDB query. More complex
 #' R objects like functions can't be used, however, because the logical
 #' expressions are ultimately evaluated by SciDB. Dimension values are
-#' treated as integer values.
+#' treated as integer values. Values are evaulated using R dynamic scoping/
+#' nonstandard evaluation (NSE). Values are evaluated in the enclosing R environments
+#' first, then among the names of SciDB attributes and dimensions. Quote the entire
+#' expression to avoid NSE
+#' and force the expression to be evaluated verbatim in SciDB (see examples).
 #'
 #' Explicit grouping by parenthesis may be required to generate most
 #' optimal queries when attribute and dimension conditions are mixed together
@@ -560,12 +566,10 @@ sort_scidb = function(x, decreasing=FALSE, ...)
 #' # an attribute. Note the difference in the generated queries:
 #'
 #' y <- subset(x, "Species = 'setosa' and row > 40")
-#' y@@name
 #' # [1] "filter(R_array5494563bc4e1101849601199,Species = 'setosa' and row > 40)"
 #'
 #' i <- 40
 #' z <- subset(x, Species == 'setosa' & row > i)
-#' z@@name
 #' # [1] "filter(between(R_array5494563bc4e1101849601199,41,null),Species = 'setosa' )"
 #'
 #' # Important things to note:
@@ -583,23 +587,28 @@ sort_scidb = function(x, decreasing=FALSE, ...)
 #' replace an existing attribute. New attribute names must not conflict with array
 #' dimension names.
 #' @param _data SciDB array
-#' @param ... named transformations, NOTE that SciDB expressions must be quoted (see example)
+#' @param ... named transformations
+#' @note
+#' Expressions that can't be evaluated in R are passed to SciDB as is. Explicitly
+#' quote expressions to guarantee that they will be evaluated only by SciDB.
 #' @return a SciDB array
-#' @note The \code{transform} function at this time only supports quoted SciDB expressions.
-#' A future version may also support more general mixed R/SciDB expressions similarly to
-#' \code{\link{subset}}.
 #' @examples
 #' \dontrun{
 #' x <- scidb("build(<v:double>[i=1:5,5,0], i)")
-#' y <- transform(x, a="2*v", v="3*v")
+#' transform(x, a="2 * v")
+#' # Note replacement in this example:
+#' transform(x, v="3 * v")
+#' # Illustration of quoting expressions to force them to evaluate in SciDB:
+#' v <- pi  # local R assignment of variable 'v'
+#' transform(x, b=sin(v), c="sin(v)")
 #' }
 #' @export
 `transform.scidb` = function(`_data`, ...)
 {
-  a = as.list(match.call())[-(1:2)]
-  if(length(a) == 0) return()
-  n = names(a)
-  v = unlist(a)
+  `_val` = as.list(match.call())[-(1:2)]
+  if(length(`_val`) == 0) return()
+  n = names(`_val`)
+  v = unlist(Map(function(x) tryCatch(eval(x), error=function(e) x), `_val`))
   names(v) = c()
   bind(`_data`, n, v)
 }

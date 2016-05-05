@@ -35,8 +35,8 @@ scidb = function(name, gc=FALSE)
   obj@gc = new.env()
   obj@meta = new.env()
   delayedAssign("state", lazyeval(name), assign.env=obj@meta)
-  delayedAssign("schema", state$schema, eval.env=obj@meta, assign.env=obj@meta)
-  delayedAssign("logical_plan", state$logical_plan, eval.env=obj@meta, assign.env=obj@meta)
+  delayedAssign("schema", get("state")$schema, eval.env=obj@meta, assign.env=obj@meta)
+  delayedAssign("logical_plan", get("state")$logical_plan, eval.env=obj@meta, assign.env=obj@meta)
 
   if(gc)
   {
@@ -81,6 +81,7 @@ is.temp = function(name)
 #' @param password optional authentication password
 #' @param auth_type optional SciDB authentication type
 #' @param protocol optional shim protocol type
+#' @param init set to \code{TRUE} to instruct SciDB to load a lot of optional and required plug-ins once a connection is established
 #' @note
 #' The SciDB connection state is maintained internally to the \code{scidb}
 #' package. We internalize state to facilitate operations involving \code{scidb}
@@ -101,12 +102,12 @@ is.temp = function(name)
 #' Disconnection is automatically handled by the package.
 #' @return \code{NULL} is returned invisibly; this function is used for its
 #' side effect.
-#' importFrom digest digest
+#' @importFrom digest digest
 #' @export
 oldscidbconnect = function(host=options("scidb.default_shim_host")[[1]],
                         port=options("scidb.default_shim_port")[[1]],
                         username, password,
-                        auth_type="digest", protocol=c("http", "https"))
+                        auth_type="digest", protocol=c("http", "https"), init=FALSE)
 {
   auth_type = match.arg(auth_type)
   protocol = match.arg(protocol)
@@ -160,6 +161,9 @@ oldscidbconnect = function(host=options("scidb.default_shim_host")[[1]],
     id = id[[length(id)]]
     assign("uid", id, envir=.scidbenv)
   }
+
+if(init)
+{
 # Try to load the accelerated_io_tools, then load_tools, then
 # prototype_load_tools libraries:
   got_load = tryCatch(
@@ -198,6 +202,8 @@ oldscidbconnect = function(host=options("scidb.default_shim_host")[[1]],
   tryCatch(
     iquery(query="load_library('cu')", `return`=FALSE),
     error=invisible)
+} # end if init
+
 # Save available operators
   assign("ops", iquery("list('operators')", `return`=TRUE), envir=.scidbenv)
 

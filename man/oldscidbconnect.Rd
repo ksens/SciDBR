@@ -6,7 +6,7 @@
 \usage{
 oldscidbconnect(host = options("scidb.default_shim_host")[[1]],
   port = options("scidb.default_shim_port")[[1]], username, password,
-  auth_type = "digest", protocol = c("http", "https"))
+  auth_type = "digest", protocol = c("http", "https"), init = FALSE)
 }
 \arguments{
 \item{host}{optional host name or I.P. address of a SciDB shim service to connect to}
@@ -20,11 +20,12 @@ oldscidbconnect(host = options("scidb.default_shim_host")[[1]],
 \item{auth_type}{optional SciDB authentication type}
 
 \item{protocol}{optional shim protocol type}
+
+\item{init}{set to \code{TRUE} to instruct SciDB to load a lot of optional and required plug-ins once a connection is established}
 }
 \value{
 \code{NULL} is returned invisibly; this function is used for its
 side effect.
-importFrom digest digest
 }
 \description{
 Connect to a SciDB database
