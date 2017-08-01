@@ -347,7 +347,7 @@ URI = function(db, resource="", args=list())
   if (!is.null(.scidbenv$password)) args = c(args, list(password=.scidbenv$password))
   if (!is.null(.scidbenv$username)) args = c(args, list(user=.scidbenv$username))
   prot = paste(.scidbenv$protocol, "//", sep=":")
-  if ("password" %in% names(args) || "auth" %in% names(args)) prot = "https://"
+  # if ("password" %in% names(args) || "auth" %in% names(args)) prot = "https://"
   if (!is.null(.scidbenv$port)) { # if port value is not NULL
     ans = paste(prot, .scidbenv$host, ":", .scidbenv$port, sep="")
   } else { # if port value is NULL, Shim port must have been forwarded to a URL

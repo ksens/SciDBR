@@ -169,7 +169,7 @@ scidbconnect = function(host=getOption("scidb.default_shim_host", "127.0.0.1"),
     attr(db, "connection")$authenv = new.env()
     if (auth_type=="scidb")
     {
-      attr(db, "connection")$protocol = "https"
+      # attr(db, "connection")$protocol = "https"
       attr(db, "connection")$username = username
       if (password_digest)
         attr(db, "connection")$password = base64_encode(digest(charToRaw(password), serialize=FALSE, raw=TRUE, algo="sha512"))
