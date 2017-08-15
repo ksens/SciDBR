@@ -149,7 +149,10 @@ merge_scidb_on_attributes = function(x, y, by.x, by.y, all.x, all.y)
       z = redimension(cast(y, castschema), reschema)
     } else
     {
-      castschema = sprintf("%s%s", newas, build_dim_schema(y))
+      # castschema = sprintf("%s%s", newas, build_dim_schema(y))
+      castschema = sprintf("<%s>[%s]", 
+                           build_attr_schema(y), 
+                           paste(dimensions(y), collapse=","))
       z = cast(y, castschema)
     }
     if(all.x || all.y) # outer join
