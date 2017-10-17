@@ -28,7 +28,7 @@ NULL
 
 .onAttach = function(libname, pkgname)
 {
-  packageStartupMessage("   ____    _ ___  ___\n  / __/___(_) _ \\/ _ )\n _\\ \\/ __/ / // / _  |\n/___/\\__/_/____/____/     Copyright 2016, Paradigm4, Inc.\n\n", domain = NULL, appendLF = TRUE)
+  packageStartupMessage("   ____    _ ___  ___\n  / __/___(_) _ \\/ _ )\n _\\ \\/ __/ / // / _  |\n/___/\\__/_/____/____/     Copyright 2016-2017, Paradigm4, Inc.\n\n", domain = NULL, appendLF = TRUE)
 
   options(scidb.prefix=NULL)
 # Default shim port and host.
@@ -101,7 +101,7 @@ NULL
   uint32="double",
   int32="integer",
   int16="integer",
-  unit16="integer",
+  uint16="integer",
   int8="integer",
   uint8="integer",
   bool="logical",
